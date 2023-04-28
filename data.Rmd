@@ -1,1 +1,17 @@
 # Data cleaning
+```{r data_import, include=FALSE}
+data_2020 = read.csv("data/2020-States.csv")
+data_2021 = read.csv("data/2021-States.csv")
+data_2022 = read.csv("data/2022-States.csv")
+data_2023 = read.csv("data/2023-States.csv")
+crude_oil_data = read.csv("data/crude-oil-price.csv")
+```
+
+```{r data_merge}
+
+#Merge all flights datasets together
+
+
+#Find how to merge dataset with oil prices 
+
+```
