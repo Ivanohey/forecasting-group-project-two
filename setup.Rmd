@@ -1,0 +1,10 @@
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyr)
+library(tidyverse)
+library(dplyr)
+
+wd = getwd()
+cat("Current working directory: ",wd)
+setwd(wd)
+```
