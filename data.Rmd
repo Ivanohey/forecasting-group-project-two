@@ -10,17 +10,16 @@ crude_oil_data = read.csv("data/crude-oil-price.csv")
 ```{r data_merge}
 
 #Merge all flights datasets together
+data_2019 = select(data_2020, Entity, Day.2019, Flights.2019..Reference.) %>% rename(Day = Day.2019, Flights = Flights.2019..Reference.)
 data_2020 = select(data_2020, Entity, Day, Flights)
 data_2021 = select(data_2021, Entity, Day, Flights)
 data_2022 = select(data_2022, Entity, Day, Flights)
 data_2023 = select(data_2023, Entity, Day, Flights)
-data_all_years = rbind(data_2020, data_2021, data_2022, data_2023)
+data_all_years = rbind(data_2019, data_2020, data_2021, data_2022, data_2023)
 
 #Select only data where country == switzerland
 data_all_years = data_all_years[data_all_years$Entity == 'Switzerland',]
 data_all_years$year_month = format(as.Date(data_all_years$Day), "%Y-%m")
-
-
 
 #Cleaning crude-oil data set
 crude_oil_data$year_month = format(as.Date(crude_oil_data$date), "%Y-%m") #Transforming date column

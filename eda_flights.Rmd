@@ -1,0 +1,8 @@
+# Exploratory data analysis flights
+```{r eda_flights}
+data = flight_and_oil
+data$year = format(as.Date(data$Day), "%Y")
+flight_plot = ggplot(data=data, aes(x=Day, y=Flights)) + geom_point()
+#flight_plot + facet_grid(year ~ .) 
+flight_plot
+```

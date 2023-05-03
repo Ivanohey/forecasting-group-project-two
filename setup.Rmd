@@ -3,7 +3,7 @@ knitr::opts_chunk$set(echo = TRUE)
 library(tidyr)
 library(tidyverse)
 library(dplyr)
-
+library(ggplot2)
 wd = getwd()
 cat("Current working directory: ",wd)
 setwd(wd)
