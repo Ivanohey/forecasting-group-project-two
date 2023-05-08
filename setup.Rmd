@@ -5,6 +5,14 @@ library(tidyverse)
 library(dplyr)
 library(ggplot2)
 library(readxl)
+library(lubridate)
+library(summarytools)
+
+#Forecasting 
+library(forecast)
+library(tsibble)
+library(fpp3)
+
 wd = getwd()
 cat("Current working directory: ",wd)
 setwd(wd)

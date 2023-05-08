@@ -1,0 +1,6 @@
+# Exploratory data analysis 
+```{r eda_flights}
+
+
+
+```
