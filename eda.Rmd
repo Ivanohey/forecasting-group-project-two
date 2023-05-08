@@ -1,6 +1,9 @@
 # Exploratory data analysis 
-```{r eda_flights}
 
+## Univariate analysis
 
+```{r}
 
 ```
+
+## Bivariate analysis

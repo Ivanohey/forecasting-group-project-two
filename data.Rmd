@@ -1,15 +1,11 @@
 # Data cleaning
-```{r data_import, include=FALSE}
+
+```{r data_merge}
+#Flights data
 data_2020 <- read.csv("data/2020-States.csv")
 data_2021 <- read.csv("data/2021-States.csv")
 data_2022 <- read.csv("data/2022-States.csv")
 data_2023 <- read.csv("data/2023-States.csv")
-
-```
-
-```{r data_merge}
-#Flights data
-
 
 #Merge all flights datasets together
 data_2019 <- select(data_2020, Entity, Day.2019, Flights.2019..Reference.) %>% rename(Day = Day.2019, Flights = Flights.2019..Reference.)
@@ -25,6 +21,9 @@ flights$year_month = format(as.Date(flights$Day), "%Y-%m")
 
 flights <- flights %>% select(Day,Flights) %>% set_names(c("Date", "Flights"))
 
+#Convert the "Date" column to a date format:
+#flights$Date <- parse_date_time(flights$Date, orders = c("%d-%b-%y", "%b %d, %Y"))
+
 ```
 
 ```{r}
@@ -35,8 +34,15 @@ weather <- read_excel("data/switzerland weather.xlsx")
 
 weather <- weather %>% select(datetime,temp, precip, snow, windspeed, visibility, humidity)
 
+#change column names to match with other datasets
+colnames(weather)[1] <- "Date"
+
+#Convert the "Date" column to a date format:
+#weather$Date <- parse_date_time(weather$Date, orders = c("%d-%b-%y", "%b %d, %Y"))
+
 #Some summary statistics for all columns
-weather %>% dfSummary(style = "grid")
+#weather %>% dfSummary(style = "grid")
+
 
 ```
 
@@ -65,14 +71,24 @@ ggplot(oil, aes(x = Date, y = Price)) +
   #mutate(Date = yearmonth(Date)) %>% #need to do this before converting to get proper format
   #as_tsibble(index = Date)
 
-
 #Select appropriate dates
 oil <- oil %>%
   mutate(Date = as.Date(Date)) %>%
   filter(Date > as.Date("2019-01-01"))
 
-#remember you HAVE to assign to a new variable if you are changing to a tsibble... You can't just have oil <- oil %>% ... 
-oil_ts <- tsibble(Date = as.Date(oil$Date), Price = oil$Price) 
+```
+
+## TO DO: MERGE THE DATASETS -> DIFFERENT DATE COLUMN TYPES
+
+```{r}
+#Merging datasets together 
+
+data <- flights %>%
+  left_join(oil, by = "Date") %>%
+  left_join(weather, by = "Date")
+
+
+#Convert to tsibble object  
 
 #Plot the time series 
 oil_ts %>% autoplot() +
