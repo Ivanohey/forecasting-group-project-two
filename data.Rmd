@@ -25,6 +25,20 @@ flights <- flights %>% select(Day,Flights) %>% set_names(c("Date", "Flights"))
 #flights$Date <- parse_date_time(flights$Date, orders = c("%d-%b-%y", "%b %d, %Y"))
 flights <- flights %>% mutate(Date = as.Date(Date, format = "%Y-%m-%d"))
 
+#This shows that date is correctly converted to date type
+str(flights)
+
+#there are a bunch of duplicated rows, i guess because of the way the data was imported? 
+duplicates(flights)
+
+#This will remove all the duplicated rows, and only keep one of them
+flights <- flights %>% 
+  distinct()
+
+#now there's no more duplicates
+duplicates(flights)
+
+
 ```
 
 ```{r}
@@ -38,12 +52,17 @@ weather <- weather %>% select(datetime,temp, precip, snow, windspeed, visibility
 #change column names to match with other datasets
 colnames(weather)[1] <- "Date"
 
-#Convert the "Date" column to a date format:
+#Convert the "Date" column to a date format: (Previous type was POSIXct first time i'm seeing that)
 #weather$Date <- parse_date_time(weather$Date, orders = c("%d-%b-%y", "%b %d, %Y"))
+weather <- weather %>% mutate(Date = as.Date(Date))
 
 #Some summary statistics for all columns
 #weather %>% dfSummary(style = "grid")
 
+str(weather)
+
+#There are no duplicates here
+duplicates(weather)
 
 ```
 
@@ -58,16 +77,21 @@ oil <- read.csv("data/BrentOilPrices.csv")
 #Convert the "Date" column to a date format:
 oil$Date <- parse_date_time(oil$Date, orders = c("%d-%b-%y", "%b %d, %Y"))
 
+#Convert data to date type
+oil <- oil %>% mutate(Date = as.Date(Date))
+
+#check it's of the right type 
+str(oil)
+
 #Summary statistics 
 oil %>% dfSummary(style = "grid")
-
 
 #Plot the time series 
 ggplot(oil, aes(x = Date, y = Price)) +
   geom_line() +
   labs(title = "Brent Oil Prices (all data)", x = "Date", y = "Price")
 
-#convert to tsibble object 
+#convert to tsibble object -> NOT YET
 #oil <- oil %>%
   #mutate(Date = yearmonth(Date)) %>% #need to do this before converting to get proper format
   #as_tsibble(index = Date)
@@ -82,52 +106,60 @@ ggplot(oil, aes(x = Date, y = Price)) +
   geom_line() +
   labs(title = "Brent Oil Prices 2019 onwards", x = "Date", y = "Price")
 
+
+
+
+#I do the following, becauase I realized that even though there are not explicit NA's, there are some date rows missing, and I need to create them... 
+
+
 # create a complete sequence of dates from the minimum to maximum date
 all_dates <- seq(min(oil$Date), max(oil$Date), by = "day")
 
 # use complete() to create rows for the missing dates
-oil_complete <- oil %>% 
+oil <- oil %>% 
   complete(Date = all_dates)
 
 # replace missing prices with NA
-oil_complete$Price[is.na(oil_complete$Price)] <- NA
+oil$Price[is.na(oil$Price)] <- NA
 
 #There are 426 missing values now that I have completed the oil dataset... 
-sum(is.na(oil_complete))
+sum(is.na(oil))
 
+#there are no duplicates here
+duplicates(oil)
 
 ```
 
 ```{r}
-#Trying with another oil dataset...
-newoil <- read.csv('data/crudeoil.csv')
+#Trying with another oil dataset... THIS WAS EVEN WORSE
+
+#newoil <- read.csv('data/crudeoil.csv')
 
 #Converting date column to date type + format
-newoil <- newoil %>%
-  mutate(Date = as.Date(Date, format = "%m/%d/%Y"))
+#newoil <- newoil %>%
+#  mutate(Date = as.Date(Date, format = "%m/%d/%Y"))
 
 #Select relevant columns
-newoil <- newoil %>% select(Date,Close.Last)
+#newoil <- newoil %>% select(Date,Close.Last)
 
 #Select relevant dates
-newoil <- newoil %>%
-  mutate(Date = as.Date(Date)) %>%
-  filter(Date > as.Date("2019-01-01"))
+#newoil <- newoil %>%
+#  mutate(Date = as.Date(Date)) %>%
+#  filter(Date > as.Date("2019-01-01"))
 
 #Plot the time series 
-ggplot(newoil, aes(x = Date, y = Close.Last)) +
-  geom_line() +
-  labs(title = "Oil Prices 2019 onwards", x = "Date", y = "Price")
+#ggplot(newoil, aes(x = Date, y = Close.Last)) +
+#  geom_line() +
+#  labs(title = "Oil Prices 2019 onwards", x = "Date", y = "Price")
 
 #Check for NA's -> There are no NA's for the moment
-sum(is.na(newoil))
+#sum(is.na(newoil))
 
 
 ```
 
 
-
-## TO DO: MERGE THE DATASETS -> DIFFERENT DATE COLUMN TYPES
+## Merging the datasets
 
 ```{r}
 #Merging datasets together 
@@ -135,32 +167,18 @@ data <- flights %>%
   left_join(oil, by = "Date") %>%
   left_join(weather, by = "Date")
 
+data <- data %>% 
+  filter(Date < as.Date("2022-11-14"))
+
 #Convert to tsibble object  
-#ts_data <- data %>%
-#  as_tsibble(index = Date)
+ts_data <- data %>%
+  as_tsibble(index = Date)
 
-
-#There is a problem converting to tsibble, because apparently there are duplicate dates
-duplicates(data)
 
 #Plot the time series 
-#data %>% autoplot(Price) +
-#  labs(title = "Brent Oil Prices 2019 onwards", x = "Date", y = "Price")
+ts_data %>% autoplot(Price) +
+  labs(title = "Brent Oil Prices 2019 onwards", x = "Date", y = "Price")
 
-
-
-
-
-
-#TRYING WITH NEWOIL
-
-#Merging datasets together 
-newdata <- flights %>%
-  left_join(newoil, by = "Date") %>%
-  left_join(weather, by = "Date")
-
-#There are 713 NA's if we use the newoil data
-sum(is.na(newdata$Close.Last))
 
 ```
 
