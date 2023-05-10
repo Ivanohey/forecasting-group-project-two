@@ -54,12 +54,44 @@ Here are some observations based on the data-over-time graphs above:
 
 ### Specific plots for interesting variables 
 
-```{r}
+Exploring snow in 2021 - It looks completely unusable because there is too little data. 
 
+```{r}
+#selecting data from november 2019 until march 2022 
+ts_data %>% 
+  filter(Date >= as.Date("2021-11-01") & Date <= as.Date("2022-03-31")) %>% 
+  autoplot(snow)
 ```
 
+Now lets look at what's happening to visibility:
+
+```{r}
+#selecting data from november 2019 until march 2022 
+ts_data %>% 
+  filter(Date >= as.Date("2021-12-01") & Date <= as.Date("2022-10-31")) %>% 
+  autoplot(visibility)
+```
+
+This makes absolutely no sense, why is visibility consistently at the same value for almost all of 2022? Did something change in the weather or is this just wrong data? Probably the data is just wrong... If we do decide to use visibility in order to forecast, we will have to stop using visibility before the point where it gets weird (January 2022)
 
 
 ## Bivariate analysis
 
 In this section of our EDA, we will explore the relationships between our variables, which will help us decide which to keep for our final forecasting analysis. 
+
+Here are the specific correlations between our variables:
+
+```{r}
+cor(ts_data[,2:9])
+```
+
+Here's a heatmap of the correlations to help visualize the relationships between the variables: 
+
+```{r}
+plot_correlation(ts_data)
+
+corr_matrix <- cor(ts_data[,2:9])
+
+corrplot(corr_matrix, type = "upper", order = "hclust", tl.col = "black")
+```
+
