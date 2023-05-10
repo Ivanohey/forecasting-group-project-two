@@ -2,8 +2,46 @@
 
 ## Univariate analysis
 
+In this first part of our EDA, we will explore each variable on its own, before looking at the relationship between different variables.
+
+### Plots of each variable over time: 
+
 ```{r}
+#Flights plot 
+ts_data %>% autoplot(Flights) +
+  labs(title = "Flights over time", x = "Date", y = "Number of Flights")
+
+#Price plot
+ts_data %>% autoplot(Price) +
+  labs(title = "Brent Oil Prices 2019 onwards", x = "Date", y = "Price")
+
+#temp plot
+ts_data %>% autoplot(temp) +
+  labs(title = "Temperature over time", x = "Date", y = "Temperature in Celsius")
+
+#precip plot
+ts_data %>% autoplot(precip) +
+  labs(title = "Precipitation over time", x = "Date", y = "Precipitation")
+
+#snow plot
+ts_data %>% autoplot(snow) +
+  labs(title = "Snow over time", x = "Date", y = "Snow")
+
+#windspeed plot
+ts_data %>% autoplot(windspeed) +
+  labs(title = "Windspeed over time", x = "Date", y = "Windspeed")
+
+#visibility plot
+ts_data %>% autoplot(visibility) +
+  labs(title = "Visibility over time", x = "Date", y = "Visibility")
+
+#humidity plot
+ts_data %>% autoplot(humidity) +
+  labs(title = "Humidity over time", x = "Date", y = "Humidity")
+
 
 ```
 
 ## Bivariate analysis
+
+In this section of our EDA, we will explore the relationships between our variables, which will help us decide which to keep for our final forecasting analysis. 

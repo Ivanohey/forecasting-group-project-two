@@ -64,6 +64,12 @@ str(weather)
 #There are no duplicates here
 duplicates(weather)
 
+#any(is.na(weather))
+
+ggplot(weather, aes(x = Date, y = visibility)) +
+  geom_line() +
+  labs(title = "Visibility over time", x = "Date", y = "Visibility")
+
 ```
 
 ```{r}
@@ -179,6 +185,55 @@ ts_data <- data %>%
 ts_data %>% autoplot(Price) +
   labs(title = "Brent Oil Prices 2019 onwards", x = "Date", y = "Price")
 
+#Info on our variables
+str(ts_data)
 
+```
+
+As we can see there's a lot of missing values for the price variable. I will try to impute them using the KNN method: 
+
+I discovered the imputeTS package, which includes various imputation methods, as well as some statistics for the missing values. Here are some of them: 
+
+```{r}
+library(imputeTS)
+
+#This graph looks terrible but it shows you all the missing data 
+ggplot_na_distribution(ts_data$Price)
+
+#missing data statistics -> actually quite useful to see what's going on
+statsNA(ts_data$Price)
+
+#I'm choosingthe moving average method to impute the data.
+ts_data$Price <- na_ma(ts_data$Price)
+
+#Plot the time series 
+ts_data %>% autoplot(Price) +
+  labs(title = "Brent Oil Prices 2019 onwards - IMPUTED", x = "Date", y = "Price")
+
+```
+In the imputeTS package, there are a lot of methods to impute the data, and after trying some we decided to stick with the weighted moving average. This is because most frequently (185 times) the gap is only 2 NA values long. There are 13 cases where the gap is 3 NA's long, and only 4 cases where the gap is 4 NA's long. This means that using the weighted moving average is providing a very good approximation of the price data. 
+
+If the gaps were longer and the NA's were all concentrated in one big area, then we would consider using other imputation methods, but this is really not the case. The missing values seem to be spread all over the data, so the moving weighted averate seems to be doing a great job. 
+
+Finally, let's check to see if there's any missing data after imputation
+
+```{r}
+#Final check
+any(is.na(ts_data)) #seems there are still some NA's
+
+# Identify rows with missing values
+na_rows <- !complete.cases(ts_data)
+
+# Print rows with missing values
+ts_data[na_rows,]
+
+```
+It looks like there are 6 rows with missing values in the visibility column. I will just use the same same function as previously to impute them. 
+
+```{r}
+#I'm choosingthe moving average method to impute the data.
+ts_data$visibility <- na_ma(ts_data$visibility)
+
+any(is.na(ts_data))
 ```
 
