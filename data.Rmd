@@ -66,6 +66,7 @@ duplicates(weather)
 
 #any(is.na(weather))
 
+#visibility data for 2022-2023 looks very sus
 ggplot(weather, aes(x = Date, y = visibility)) +
   geom_line() +
   labs(title = "Visibility over time", x = "Date", y = "Visibility")

@@ -41,6 +41,21 @@ ts_data %>% autoplot(humidity) +
 
 
 ```
+Here are some observations based on the data-over-time graphs above: 
+
+- Number of Flights: There is a clear trend, and some possible seasonality. Also, the covid flight-restriction drop is extremely clear. After that, the number of flights seems to be steadily increasing (with some cycles) towards to its pre-covid level. However, from this graph we can argue that there tend to be more flights in the summer compared to the winter. A big factor causing this is obviously school holidays in the summer.
+- Brent oil price: There is a clear trend, but not an obvious seasonality in the data at first glance. Further analysis is needed to determine the specifics.
+- Temperature: Extremely seasonal data, without a clear trend. Always peaking in the summer months for the highest temperatures and in the winter months for the lowest ones.
+- Precipitation: Difficult to interpret at this point, but some seasonality can be seen, with less precipitation in the summer months, and more in the winter months.
+- Snow: Very bizarre that there's no snow at all in 2020, and then a huge peak in 2021. I need to analyze in more depth to see what's going on, but since there are so many zeros for most of the year, I'm not sure if snow as a variable will help forecast anything. 
+- Windspeed: Very clear seasonality, with perhaps a downward trend for 2022-2023. 
+- Visibility: Clear seasonality with the best visibility in the summer and worst in the winter. Also, the data is looking weird after 2022...
+- Humidity: Clear seasonality with more humidity in the winter compared to the summer months.
+
+### Specific plots for interesting variables 
+
+
+
 
 ## Bivariate analysis
 

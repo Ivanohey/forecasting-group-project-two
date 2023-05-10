@@ -14,3 +14,5 @@ To draft a solution to these challenges, we are going to analyze daily air traff
 ## What is Brent crude oil and why use it
 
 Brent crude oil is a type of crude oil that is extracted from the North Sea and is one of the major benchmark prices for purchases of oil worldwide. Brent crude oil is light, sweet crude oil that is widely used for production of gasoline and middle distillates. It is named after the Brent goose, which is a common sight in the North Sea. Brent crude oil is traded on the Intercontinental Exchange (ICE) and its price is influenced by a variety of factors, including global supply and demand, geopolitical events, and economic factors.
+
+More specifically, the price of Brent crude oil impacts the price of airplane transportation fuel, as it is one of the main components used in the production of jet fuel. Fluctuations in the price of Brent crude oil can affect the cost of manufacturing jet fuel, which in turn can impact the price of airplane tickets. We assume that if the price of the airplane ticktets is affected, then the demand for flights will also be affected. This is what we are aiming to investigate.
