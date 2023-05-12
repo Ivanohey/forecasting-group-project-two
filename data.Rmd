@@ -232,7 +232,7 @@ ts_data[na_rows,]
 It looks like there are 6 rows with missing values in the visibility column. I will just use the same same function as previously to impute them. 
 
 ```{r}
-#I'm choosingthe moving average method to impute the data.
+#I'm choosing the moving average method to impute the data.
 ts_data$visibility <- na_ma(ts_data$visibility)
 
 any(is.na(ts_data))

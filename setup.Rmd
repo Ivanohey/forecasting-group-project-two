@@ -8,6 +8,7 @@ library(readxl)
 library(lubridate)
 library(DataExplorer)
 library(corrplot)
+library(GGally)
 
 #cleaning 
 library(summarytools)

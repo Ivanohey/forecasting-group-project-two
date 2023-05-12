@@ -95,3 +95,36 @@ corr_matrix <- cor(ts_data[,2:9])
 corrplot(corr_matrix, type = "upper", order = "hclust", tl.col = "black")
 ```
 
+From the correlation graph, we can say the following about the correlations between our variables:
+
+- Flights: The number of flights seems to be strongly correlated with the oil price, slightly correlated with temperature, visibility and snow. It's surprising to see that snow shows even a small correlation, given how little data we have on it. 
+
+- Humidity: Humidity seems to be strongly inversely correlated with the temperature, the visibility, and the windspeed. 
+- Price: The oil price seems to be correlated with visibility, but this is most likely a coincidence. 
+
+```{r}
+# Remove Date column
+data_no_date <- data[, -1]
+
+# Plot correlations
+ggpairs(data_no_date)
+
+```
+
+
+## Conclusions from EDA
+
+Based on our EDA, we have come to the following conclusions, regarding our analysis: 
+
+- We will not use Snow and Visibility: snow just doesn't have enough data and is therefore very hard to forecast, and visibility looks like something changed in the way it was measure in 2022 and the data is just unusable. We will only continue our analysis using oil, temp, precip, windspeed and humidity.  
+
+- We will split our modeling analysis into two parts: one will only work with weather data, and the other with oil price data. More details about this in the following section.
+
+- For the weather analysis, we will split our training data from the earliest data we have up until 2 weeks before the end, and we will use the last two weeks of our data as a test set to compare our predictions with the actual observed weather data. 
+
+- For the oil price analysis, we will split our training data from the earliest data we have up until June 2022. This is to capture the increase in the oil prices after the war in Ukraine. Then, we will use data from June 2022 until November 2022 (which is the latest data we have) to compare our models' performances with reality. 
+
+
+
+
+

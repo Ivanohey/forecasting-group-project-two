@@ -1,0 +1,9 @@
+
+# Models 
+
+We decided to split the modeling section into two parts. In the first part, we will try to forecast the number of daily flights, for the following 12 months, only based on the price of oil. In the second part, we will try to forecast the number of daily flights using the weather variables, for the next two weeks. We therefore decided not to mix these oil price and weather variables together. 
+
+We made this decision, because as we saw in our EDA the price of oil is not as volatile as our weather variables like the temperature. More specifically, we don't expect the price of oil to change in a matter of two weeks. At the same time, weather data is extremely hard to forecast, and it doesn't really make sense to forecast weather data for a year from now. Because of these two reasons, we decided not to mix the two, and instead split the modeling part of our project into two parts.
+
+## Models using the Oil price variable
+
