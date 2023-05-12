@@ -124,6 +124,30 @@ Based on our EDA, we have come to the following conclusions, regarding our analy
 
 - For the oil price analysis, we will split our training data from the earliest data we have up until June 2022. This is to capture the increase in the oil prices after the war in Ukraine. Then, we will use data from June 2022 until November 2022 (which is the latest data we have) to compare our models' performances with reality. 
 
+## Final Dataset + Split train/test 
+
+```{r}
+#here's the final dataset (excluding visibility and snow)
+ts_data <- ts_data[, !(names(ts_data) %in% c("snow", "visibility"))]
+
+
+#Oil training and test
+ts_data_oil <- ts_data %>% select(Date,Flights,Price)
+#selecting everything until 1st jan 2022
+ts_data_oil_tr <-  ts_data_oil %>% filter(Date < as.Date("2022-01-01"))
+#selecting everything from 1st jan 2022 onwards
+ts_data_oil_te <- ts_data_oil %>% filter(Date >= as.Date("2022-01-01"))
+
+
+
+#Weather training and test
+ts_data_weather <- ts_data %>% select(Date,Flights,temp,precip,windspeed,humidity)
+#selecting everything until the last two weeks of data
+ts_data_weather_tr <- ts_data_weather %>% filter(Date < as.Date("2022-10-31"))
+#selecting everything in the last two weeks of data
+ts_data_weather_te <- ts_data_weather %>% filter(Date >= as.Date("2022-10-31"))
+
+```
 
 
 
