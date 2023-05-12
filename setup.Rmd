@@ -9,6 +9,7 @@ library(lubridate)
 library(DataExplorer)
 library(corrplot)
 library(GGally)
+library(DT)
 
 #cleaning 
 library(summarytools)

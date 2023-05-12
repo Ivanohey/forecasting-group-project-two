@@ -238,3 +238,10 @@ ts_data$visibility <- na_ma(ts_data$visibility)
 any(is.na(ts_data))
 ```
 
+Finally, I need to round the values to 2 decimals for Price and visibility
+
+```{r}
+ts_data$Price <- round(ts_data$Price, 2)
+ts_data$visibility <- round(ts_data$visibility, 2)
+```
+

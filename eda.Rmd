@@ -74,6 +74,54 @@ ts_data %>%
 
 This makes absolutely no sense, why is visibility consistently at the same value for almost all of 2022? Did something change in the weather or is this just wrong data? Probably the data is just wrong... If we do decide to use visibility in order to forecast, we will have to stop using visibility before the point where it gets weird (January 2022)
 
+### Decomposition 
+
+```{r}
+#STL Decomposition for the flights
+ts_data %>%
+  model(STL(Flights ~ trend(window = 7) + season(window = "periodic"),
+    robust = TRUE)) %>%
+  components() %>%
+  autoplot()
+
+#STL Decomposition for the oil price
+ts_data %>%
+  model(STL(Price ~ trend(window = 7) + season(window = "periodic"),
+    robust = TRUE)) %>%
+  components() %>%
+  autoplot()
+
+#STL Decomposition for the temperature
+ts_data %>%
+  model(STL(temp ~ trend(window = 7) + season(window = "periodic"),
+    robust = TRUE)) %>%
+  components() %>%
+  autoplot()
+
+#STL Decomposition for the precip
+ts_data %>%
+  model(STL(precip ~ trend(window = 7) + season(window = "periodic"),
+    robust = TRUE)) %>%
+  components() %>%
+  autoplot()
+
+#STL Decomposition for the windspeed
+ts_data %>%
+  model(STL(windspeed ~ trend(window = 7) + season(window = "periodic"),
+    robust = TRUE)) %>%
+  components() %>%
+  autoplot()
+
+#STL Decomposition for the humidity
+ts_data %>%
+  model(STL(humidity ~ trend(window = 7) + season(window = "periodic"),
+    robust = TRUE)) %>%
+  components() %>%
+  autoplot()
+
+```
+
+
 
 ## Bivariate analysis
 
@@ -118,7 +166,7 @@ Based on our EDA, we have come to the following conclusions, regarding our analy
 
 - We will not use Snow and Visibility: snow just doesn't have enough data and is therefore very hard to forecast, and visibility looks like something changed in the way it was measure in 2022 and the data is just unusable. We will only continue our analysis using oil, temp, precip, windspeed and humidity.  
 
-- We will split our modeling analysis into two parts: one will only work with weather data, and the other with oil price data. More details about this in the following section.
+- We will split our modeling analysis into two parts: one will only work with weather data, and the other with oil price data. More details about this in the modelling section.
 
 - For the weather analysis, we will split our training data from the earliest data we have up until 2 weeks before the end, and we will use the last two weeks of our data as a test set to compare our predictions with the actual observed weather data. 
 
@@ -148,7 +196,6 @@ ts_data_weather_tr <- ts_data_weather %>% filter(Date < as.Date("2022-10-31"))
 ts_data_weather_te <- ts_data_weather %>% filter(Date >= as.Date("2022-10-31"))
 
 ```
-
 
 
 

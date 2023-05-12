@@ -1,1 +1,8 @@
-# Models using Weather variables
+## Models using Weather variables
+
+Here's what our flights-weather dataset looks like: 
+
+```{r}
+datatable(ts_data_weather, options = list(pageLength = 6))
+
+```

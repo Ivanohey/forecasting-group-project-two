@@ -7,3 +7,89 @@ We made this decision, because as we saw in our EDA the price of oil is not as v
 
 ## Models using the Oil price variable
 
+Here's what our flights-oil dataset looks like: 
+
+```{r}
+datatable(ts_data_oil, options = list(pageLength = 6))
+
+```
+
+### Let's start by forecasting the Price variable
+
+Before using it, we need to forecast the price variable from June 2022 until November 2022. To do so, we will use different models (ETS, SARIMA, Regression), and then we will compare which one was more accurate.
+
+### ETS Forecast 
+
+For training the model, I will use the ts_data_oil_tr dataset.
+
+```{r}
+
+#Modelling ets automatically
+ets_oil <- ts_data_oil_tr %>%
+  model(ETS(Price))
+
+#Getting the Accuracy scores for model
+report(ets_oil)
+
+#Forecasting using the model -> 317 days between 1st of jan and 13th of November
+forecast_ets_oil <- ets_oil %>% forecast(h = 317)
+
+#Graphing the forecast
+ets_oil %>% forecast(h = 317) %>% autoplot(ts_data_oil)+
+  labs(title = "ETS Forecast for Oil prices")
+
+#Extracting the forecasted values
+forecast_table_oil <- data.frame(Model = c("ETS"),
+                              Forecast_Values = c(forecast_ets_oil))
+
+forecast_table_oil <- forecast_table_oil %>% select(Forecast_Values.Date,Forecast_Values..mean)
+
+colnames(forecast_table_oil)[1] <- "Date"
+colnames(forecast_table_oil)[2] <- "OIL ETS"
+
+```
+
+The ETS looks terrible, there must be something wrong. 
+
+### SARIMA Forecast
+
+```{r}
+#Modelling ARIMA automatically
+arima_oil <- ts_data_oil_tr %>%
+  select(Price) %>%
+  model(ARIMA(Price, stepwise = FALSE)) 
+
+#Getting the Accuracy scores for model
+report(arima_oil) #ARIMA(3,1,1)(0,0,2)[7]
+
+#Forecasting using the models
+forecast_arima_oil <- arima_oil %>% forecast(h = 317)
+
+#Graphing the forecast
+arima_oil %>% forecast(h = 317) %>% autoplot(ts_data_oil)+
+  labs(title = "SARIMA Forecast for Oil Prices")
+
+#Extracting the forecasted values
+forecast_table_oil_arima <- data.frame(Model = c("SARIMA"),
+                              Forecast_Values = c(forecast_arima_oil))
+
+forecast_table_oil_arima <- forecast_table_oil_arima %>% select(Forecast_Values.Date,Forecast_Values..mean)
+
+colnames(forecast_table_oil_arima)[1] <- "Date"
+colnames(forecast_table_oil_arima)[2] <- "OIL SARIMA"
+```
+
+How can this be so bad am i doing something wrong? 
+
+
+### Regression Forecast 
+
+
+
+
+
+
+
+
+
+
