@@ -85,6 +85,12 @@ The explanation is that this data is very unpredictable and difficult to forecas
 
 ### Regression Forecast 
 
+I will also try to see how a forecast would look like using the TSLM model... This probably needs piece wise...
+
+```{r}
+
+```
+
 
 
 

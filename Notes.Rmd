@@ -4,7 +4,7 @@
 
 - Modelsweather: Need to add metric to compare the 3 forecasts (ETS,SARIMA,TSLM)
 
-
+- Modelsoil: Oil prices are impossible to forecast correctly. I think it's a completely useless covariate and we can exclude it.
 
 
 

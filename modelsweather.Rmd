@@ -264,3 +264,5 @@ colnames(forecast_table_tslm_humidity)[2] <- "Humidity TSLM"
 ```
 
 At this point we have forecasts for all of our weather covariates: temperature, precipitation, windspeed and humidity. 
+
+I decided to use TSLM because ETS and SARIMA produced complete garbage.

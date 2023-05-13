@@ -1,0 +1,19 @@
+
+# Forecasting Flights
+
+After having forecasted and selected our covariates, it's time to forecast the number of flights. 
+
+First, let's create a table that contains all the forecasts from our covariates: 
+
+```{r}
+#Join all covariate forecast tables together
+cov_fc <- left_join(forecast_table_tslm_temp, forecast_table_tslm_precip, by = "Date")
+cov_fc <- left_join(cov_fc, forecast_table_tslm_windspeed, by = "Date")
+cov_fc <- left_join(cov_fc, forecast_table_tslm_humidity, by = "Date")
+
+# round columns 2 to 5 to 2 decimals
+cov_fc <- cov_fc %>%
+  mutate_at(vars(2:5), ~ round(., 2))
+
+```
+
