@@ -79,10 +79,12 @@ colnames(forecast_table_oil_arima)[1] <- "Date"
 colnames(forecast_table_oil_arima)[2] <- "OIL SARIMA"
 ```
 
-How can this be so bad am i doing something wrong? 
+How can this be so bad? 
 
+The explanation is that this data is very unpredictable and difficult to forecast. Also, anyone looking at this data before 2022 would have absolutely no idea that the oil prices would explode like this, because of the war... That was an extreme, unpredictable event that caused oil prices to skyrocket... I thought it would be good to include the this oil price variable, because it's very correlated with the number of flights, but it seems like it's not possible to predict it accurately... 
 
 ### Regression Forecast 
+
 
 
 

@@ -194,6 +194,9 @@ ts_data_weather <- ts_data %>% select(Date,Flights,temp,precip,windspeed,humidit
 ts_data_weather_tr <- ts_data_weather %>% filter(Date < as.Date("2022-10-31"))
 #selecting everything in the last two weeks of data
 ts_data_weather_te <- ts_data_weather %>% filter(Date >= as.Date("2022-10-31"))
+#selecting the last 6 weeks of data to create better graphs
+ts_data_weather_last6 <- ts_data_weather %>% filter(Date >= as.Date("2022-08-31"))
+
 
 ```
 

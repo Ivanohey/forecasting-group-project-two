@@ -1,0 +1,31 @@
+# Problems
+
+- Modelsweather: I can't find a way to plot the forecast for tslm_temp using the other weather variables as predictors. In the end I just used temp - season + trend
+
+- Modelsweather: Need to add metric to compare the 3 forecasts (ETS,SARIMA,TSLM)
+
+
+
+
+
+
+
+
+
+# Rough Project outline:
+
+1. Collect and preprocess data: Gather the data for your time series variable and the potential covariates you want to use for the forecast. Ensure that the data is clean and formatted correctly, and that the time series is stationary (i.e., it has constant mean and variance over time).
+
+2. Explore the data: Use visualizations and summary statistics to explore the relationship between the time series variable and the potential covariates. Identify any patterns or relationships that may exist, and decide which covariates are most relevant for the forecast.
+
+3. Choose a model: Decide on a model that incorporates the selected covariates into the forecast. This may be a simple regression model if there is only one covariate, or a more complex model such as an ARIMAX or dynamic regression model if there are multiple covariates with different lag structures.
+
+4. Fit the model: Use the selected model to fit the time series variable and the covariates to the historical data. This involves estimating the parameters of the model, which may be done using maximum likelihood estimation or another statistical method.
+
+5. Validate the model: Check that the model provides a good fit to the historical data, by comparing the predicted values to the actual values. Use metrics such as mean absolute error (MAE) or root mean squared error (RMSE) to evaluate the accuracy of the model.
+
+6. Make forecasts: Once the model has been validated, use it to make forecasts of the time series variable using the future values of the covariates. This involves plugging in the future values of the covariates into the model to generate a forecast of the time series variable.
+
+7. Evaluate the forecasts: Check the accuracy of the forecasts by comparing them to the actual values that are observed over time. Use metrics such as MAE or RMSE to evaluate the accuracy of the forecasts.
+
+8. Refine the model: Refine the model as needed, by adjusting the selection of covariates or modifying the model structure to improve the accuracy of the forecasts.
