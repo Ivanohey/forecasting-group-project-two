@@ -6,6 +6,8 @@
 
 - Modelsoil: Oil prices are impossible to forecast correctly. I think it's a completely useless covariate and we can exclude it.
 
+- Holidays variable? -> How to include it? Does it make sense to predict? Binary variable 
+
 
 
 
