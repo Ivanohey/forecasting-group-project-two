@@ -41,6 +41,147 @@ duplicates(flights)
 
 ```
 
+```{r holiday_data_scrapping}
+
+#Loading all the public holiday days
+page = read_html("https://www.officeholidays.com/countries/switzerland/2019");
+table_2019 = html_nodes(page, sprintf(".%s", "country-table")) %>% html_table()
+holidays_2019 = as.data.frame(table_2019) 
+holidays_2019$Date = paste0(holidays_2019$Date, " 2019")
+
+page = read_html("https://www.officeholidays.com/countries/switzerland/2020");
+table_2020 = html_nodes(page, sprintf(".%s", "country-table")) %>% html_table()
+holidays_2020 = as.data.frame(table_2020)
+holidays_2020$Date = paste0(holidays_2020$Date, " 2020")
+
+page = read_html("https://www.officeholidays.com/countries/switzerland/2021");
+table_2021 = html_nodes(page, sprintf(".%s", "country-table")) %>% html_table()
+holidays_2021 = as.data.frame(table_2021)
+holidays_2021$Date = paste0(holidays_2021$Date, " 2021")
+
+page = read_html("https://www.officeholidays.com/countries/switzerland/2022");
+table_2022 = html_nodes(page, sprintf(".%s", "country-table")) %>% html_table()
+holidays_2022 = as.data.frame(table_2022)
+holidays_2022$Date = paste0(holidays_2022$Date, " 2022")
+
+holidays_all_years = rbind(holidays_2019, holidays_2020, holidays_2021, holidays_2022)
+holidays_all_years = holidays_all_years[holidays_all_years$Type != "Not A Public Holiday", ]
+
+#Scrapping the datasets containing the information for all seasons and cantons
+page = read_html("https://www.holidays-info.com/switzerland/school-holidays/2019/")
+school_2019 = html_nodes(page, "table") %>% html_table()
+school_2019 = as.data.frame(school_2019)
+
+page = read_html("https://www.holidays-info.com/switzerland/school-holidays/2020/")
+school_2020 = html_nodes(page, "table") %>% html_table()
+school_2020 = as.data.frame(school_2020)
+
+page = read_html("https://www.holidays-info.com/switzerland/school-holidays/2021/")
+school_2021 = html_nodes(page, "table") %>% html_table()
+school_2021 = as.data.frame(school_2021)
+
+page = read_html("https://www.holidays-info.com/switzerland/school-holidays/2022/")
+school_2022 = html_nodes(page, "table") %>% html_table()
+school_2022 = as.data.frame(school_2022)
+
+#Creating dataset containing school holidays
+start_date <- as.Date("2019-01-01")
+end_date <- as.Date("2022-12-31")
+dates <- seq(start_date, end_date, by = "day")
+school_holidays_df <- data.frame(date = dates, is_holiday = 0) #All rows are equal to 0
+
+#Filling the rows where there are school holidays anywhere in switzerland
+# creating list of strings:
+extractValuesToList <- function(data) {
+  valuesList <- list()  # Create an empty list to store the values
+  
+  # Iterate over each column
+  for (col in 2:ncol(data)) {
+    # Iterate over each row in the column
+    for (row in 1:nrow(data)) {
+      # Extract the value and add it to the list
+      value <- data[row, col]
+      valuesList <- append(valuesList, value)
+    }
+  }
+  
+  return(valuesList)  # Return the list of values
+}
+
+formatted_strings_2019 = extractValuesToList(school_2019)
+formatted_strings_2020 = extractValuesToList(school_2020)
+formatted_strings_2021 = extractValuesToList(school_2021)
+formatted_strings_2022 = extractValuesToList(school_2022)
+
+
+#Function to populate the main dataset
+populate_data_holidays <- function(main_dataset, formatted_strings_year, current_year) {
+  
+  for (formatted_string in formatted_strings_year) {
+  
+  # Split the formatted string by "+" to separate the range and standalone days
+  date_parts <- strsplit(formatted_string, " \\+ ")[[1]]
+  range_parts <- list()
+  standalone_parts <- list()
+  
+  #For each date parts, if the string is longer than 6 characters, define as range and append to list of ranges
+  for (i in date_parts){
+    if (nchar(i) > 6){
+      #print(i)
+      range_parts = append(range_parts, i)
+    }
+    else {
+      standalone_parts = append(standalone_parts, i)
+    }
+  }
+  
+  for (i in range_parts){
+    range_part <- i
+    date_range <- unlist(strsplit(range_part, " - "))
+   
+    #If the date doesn't contain the year
+    if (nchar(date_range[1]) <= 5) {
+    start_range <- as.Date(paste(date_range[1], current_year), format = "%b %d , %Y")
+    end_of_date_range = date_range[2]
+    end_range <- as.Date(paste(date_range[2], current_year), format = "%b %d , %Y")
+    
+    # Update the "is_holiday" column for the range of dates
+    school_holidays_df$is_holiday[school_holidays_df$date >= start_range & school_holidays_df$date <= end_range] <- 1
+    } else {
+    # Process the range part of the formatted string for dates with the year
+    start_range_year <- as.Date(date_range[1], format = "%b %d , %Y")
+    end_range_year <- as.Date(date_range[length(date_range)], format = "%b %d , %Y")
+    # Update the "is_holiday" column for the range of dates
+    school_holidays_df$is_holiday[school_holidays_df$date >= start_range_year & school_holidays_df$date <= end_range_year] <- 1
+    }
+  }
+   for (i in standalone_parts) {
+     if (nchar(i) > 1){
+      standalone_part <- i
+      print(standalone_part)
+      standalone_days <- as.Date(paste(standalone_part, current_year), format = "%b %d , %Y")
+      # Update the "is_holiday" column for the standalone days
+      school_holidays_df$is_holiday[school_holidays_df$date %in% standalone_days] <- 1
+      standalone_days <- as.Date(paste(standalone_part, current_year), format = " %b %d , %Y")
+      # Update the "is_holiday" column for the standalone days
+      school_holidays_df$is_holiday[school_holidays_df$date %in% standalone_days] <- 1
+     }
+   }
+  }
+
+  return(school_holidays_df)  
+}
+
+#Calling our function to populate our final dataset of holidays containing all holidays
+school_holidays_df = populate_data_holidays(school_holidays, formatted_strings_2019, ", 2019")
+school_holidays_df = populate_data_holidays(school_holidays, formatted_strings_2020, ", 2020")
+school_holidays_df = populate_data_holidays(school_holidays, formatted_strings_2021, ", 2021")
+school_holidays_df = populate_data_holidays(school_holidays, formatted_strings_2022, ", 2022")
+
+```
+
+
+
 ```{r}
 #Weather data
 weather <- read_excel("data/switzerland weather.xlsx")

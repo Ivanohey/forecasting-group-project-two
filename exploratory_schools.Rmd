@@ -1,0 +1,15 @@
+```{r}
+school_holidays_df = rename(school_holidays_df, Date = date) %>% as_tsibble(index = Date)
+
+```
+
+
+```{r}
+#Converting to tsibble
+autoplot(school_holidays_df, is_holiday) 
+dcmp = school_holidays_df %>% model(stl = STL(is_holiday))
+components(dcmp) %>% autoplot()
+
+```
+
+From the ETS decomposition above it is very difficult to interpret the trend. Even though it is growing, it doesn't really make sense to speak of growth when analysing binary data. On the other hand, the seasonality component and the remainder help to better spot where our data contains variations from one year to another. In fact we can see that generally the first half of the year contains more variable holidays than the second one. Therefore, this part will be more difficult to predict and forecasting flights during this period of time will introduce more variance in the forecast.

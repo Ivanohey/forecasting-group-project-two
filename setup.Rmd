@@ -11,6 +11,9 @@ library(corrplot)
 library(GGally)
 library(DT)
 
+#web scrapping
+library(rvest)
+
 #cleaning 
 library(summarytools)
 library(janitor)
