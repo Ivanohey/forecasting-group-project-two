@@ -4,6 +4,6 @@ output: html_document
 date: "`r Sys.Date()`"
 ---
 
-```{r child=c("setup.Rmd","intro.Rmd","data.Rmd", "eda.Rmd", "modelsoil.Rmd", "modelsweather.Rmd", "modelsflights.Rmd")}
+```{r child=c("setup.Rmd","intro.Rmd","data.Rmd", "exploratory_schools.rmd", "eda.Rmd", "modelsoil.Rmd", "modelsweather.Rmd", "modelsflights.Rmd")}
 
 ```

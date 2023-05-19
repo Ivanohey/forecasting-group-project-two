@@ -16,7 +16,6 @@ library(rvest)
 
 #cleaning 
 library(summarytools)
-library(janitor)
 
 #Forecasting 
 library(tsibble)

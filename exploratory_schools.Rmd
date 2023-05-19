@@ -1,15 +1,54 @@
 ```{r}
-school_holidays_df = rename(school_holidays_df, Date = date) %>% as_tsibble(index = Date)
+#Converting to tsibble
+school_holidays_tsibble = as_tsibble(school_holidays_df,index = Date)
 
 ```
 
 
 ```{r}
-#Converting to tsibble
-autoplot(school_holidays_df, is_holiday) 
-dcmp = school_holidays_df %>% model(stl = STL(is_holiday))
+autoplot(school_holidays_tsibble, is_holiday) 
+dcmp = school_holidays_tsibble %>% model(stl = STL(is_holiday))
 components(dcmp) %>% autoplot()
 
 ```
 
-From the ETS decomposition above it is very difficult to interpret the trend. Even though it is growing, it doesn't really make sense to speak of growth when analysing binary data. On the other hand, the seasonality component and the remainder help to better spot where our data contains variations from one year to another. In fact we can see that generally the first half of the year contains more variable holidays than the second one. Therefore, this part will be more difficult to predict and forecasting flights during this period of time will introduce more variance in the forecast.
+From the ETS decomposition above it is very difficult to interpret the trend. Even though it is growing, it doesn't really make sense to speak of growth when analysing binary data. On the other hand, the yearly seasonality component and the remainder help to better spot where our data contains variations from one year to another. In fact we can see that generally the first half of the year contains more variable holidays than the second one. Therefore, this part will be more difficult to predict and forecasting flights during this period of time will introduce more variance in the forecast.
+
+
+```{r plotting}
+flights_data <- flights %>% as_tsibble() 
+flights_holidays = left_join(flights, school_holidays_df, by="Date")
+
+
+#Plot the flights and holidays
+flights_holidays_plot = ggplot(data = flights_holidays) +
+  geom_line(aes(x = Date, y = Flights)) +
+  geom_line(aes(x = Date, y = ifelse(is_holiday, max(Flights) /2, NA), color = "is_holiday"), size = 3) +
+  scale_y_continuous(name = "Flights") 
+flights_holidays_plot
+
+
+```
+As we can see on the following plot, the periods of holidays seem to be followed by spikes in the amounts of flights. This makes sense since it is known that people take planes to go on remote locations for holidays. We can also see that when there are no holidays for a longer period of time, the number of flights tend to drop, as it can be seen clearly in the end of 2022 or 2023. Now let's look at the correlation between holidays and the number of flights. As we are working with time series, we first need to make our data stationary before studying correlation. In order to achieve that, we first performed a log transformation of our data to reduce the range of our values and make it easier to work with later. Then we decided to use the variation of the number of flights in percentage instead of using the raw number of flights. In fact, it should help us to see if holidays are correlated with increases or decreases in flights.
+
+```{r correlations}
+
+set.seed(123)
+
+#We perform a log transformation to make it easier to work with our data
+flights_holidays$Std_Flights = log10(flights_holidays$Flights)
+
+#We make our data stationary by transforming it. 
+stationary_data = mutate(flights_holidays, variation = tail(Flights, 5) / tail(Flights, 1) * 100)
+  
+
+cor.test(flights_holidays$Std_Flights, flights_holidays$is_holiday)
+corr = biserial.cor(flights_holidays$Std_Flights, flights_holidays$is_holiday)
+print(corr)
+```
+Using Pearson's correlation test, we can see that the two variables don't appear correlated with an insignificant correlation score of 0.068. However this can be explained by the fact that we're comparing a numerical variable with a binary variable. To have a more accurate test, we can use the point-bisserial correlation. To do this, we first need to transform our data in stationary data.
+```{r}
+
+
+
+```
