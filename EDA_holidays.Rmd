@@ -1,16 +1,16 @@
 ```{r converting__all_data_to_tsibble}
 #Holidays to tsibble
 Holidays = school_holidays_df
-Holidays_ts = as_tsibble(Holidays,index = Date)
+Holidays_ts = as_tsibble(Holidays,index = date)
 
 #Flights to tsibble
-Swiss_Traffic_tsibble = as_tsibble(Swiss_Traffic, index = date)
+Gva_Traffic_tsibble = as_tsibble(Gva_Traffic, index = date)
 
-
+Weather = weather %>% as_tsibble(index=date)
 
 #Seasonal decomposition of the flights
-dcmp_swiss = Swiss_Traffic_tsibble %>% model(stl = STL(departures))
-components(dcmp_swiss) %>% autoplot()
+dcmp_gva = Gva_Traffic_tsibble %>% model(stl = STL(departures))
+components(dcmp_gva) %>% autoplot()
 
 ```
 As seen on the ETS decomposition above, there is a strong seasonal component and a noticeable break in the 
@@ -27,8 +27,9 @@ From the ETS decomposition above it is very difficult to interpret the trend. Ev
 
 ```{r plotting}
 
-Holidays = rename(Holidays, date = Date)
-Flights_Holidays = left_join(Swiss_Traffic, Holidays, by="date") %>% group_by(date) %>% summarise(departures = sum(departures), is_holiday = is_holiday)
+
+# Flights_Holidays = left_join(Swiss_Traffic, Holidays, by="date") %>% group_by(date) %>% summarise(departures = sum(departures), is_holiday = is_holiday)
+Flights_Holidays = Gva_F_H_W
 Flights_Holidays_Covid = Flights_Holidays[Flights_Holidays$date <= as.Date("2020-01-31"),]
 
 #Plot the flights until COVID and holidays
@@ -81,20 +82,22 @@ As we can see on the plots above, the periods of holidays seem coincide with spi
 
 #Biserial plot with data only until covid
 biserial_plot = ggplot(data=Flights_Holidays_Covid) + geom_point(aes(y=departures, x=as.factor(is_holiday)), size=0.5, position=position_jitter(width=0.05)) +
-  scale_x_discrete(name = "is a holiday")
+  scale_x_discrete(name = "is a holiday") +
+  ggtitle("Biserial plot with data until Covid 19")
 biserial_plot
 
 #Undersampling the data to have same quantity of holidays and normal days:
 min_count = min(table(Flights_Holidays_Covid$is_holiday))
 balanced_data = Flights_Holidays_Covid %>% group_by(is_holiday) %>% sample_n(min_count)
 biserial_plot_balanced = ggplot(data=balanced_data) + geom_point(aes(y=departures, x=as.factor(is_holiday)), size=0.5, position=position_jitter(width=0.05)) +
-  scale_x_discrete(name = "is a holiday")
+  scale_x_discrete(name = "is a holiday") +
+  ggtitle("Biserial plot with data until Covid 19 - Undersampled data")
 biserial_plot_balanced
 
 ```
 
 
-```{r correlations}
+```{r correlations_with_covid}
 
 set.seed(123)
 
@@ -104,7 +107,7 @@ print(corr)
 ```
 Null hypothesis: There is no correlation
 Alternative hypothesis: There is a correlation
-Using Pearson's correlation test, we observe that our p-value is (0.00018 < 0.05) for a 95% confidence interval, in this case we reject the null hypothesis meaning that the values appear to be correlated.
+Using Pearson's correlation test, we observe that our p-value is (0.1255 > 0.05) for a 95% confidence interval, in this case we cannot reject the null hypothesis, meaning that there is no significant correlation.
 
 This shows evidence of our initial assumption that holidays impact the number of flights.
 
@@ -118,69 +121,4 @@ print(corr_before_covid)
 
 ```
 
-As seen in the results above, we have an even stronger correlation score and a smaller p-value for data recorded until Covid, meaning that we can reject the null hypothesis stating that variables are not correlated. The ability to predict holidays efficiently allows us to use this information as covariate for predicting the number of flights.
-
-```{r arima_model_with_covid }
-#With covid
-holidays_total = Flights_Holidays %>% mutate(is_holiday = as.factor(is_holiday)) %>% as_tsibble()
-holidays_train_set = holidays_total %>% filter(date < as.Date("2022-01-01"))
-holidays_test_set = holidays_total %>% filter(date >= as.Date("2022-01-01") & date <= as.Date("2022-10-31"))
-
-
-#Without holidays
-arima_flights = holidays_train_set %>% 
-  model(ARIMA(departures, stepwise= FALSE, approximation = FALSE)) %>% 
-  forecast(h = nrow(holidays_test_set))
-
-#With holidays
-sarimax_flights = holidays_train_set %>% 
-  model(ARIMA(departures ~ is_holiday, stepwise= FALSE)) %>% 
-  forecast(new_data = as_tsibble(holidays_test_set))
-
-autoplot(arima_flights) +
-  geom_line(aes(x=holidays_test_set$date, y=holidays_test_set$departures)) +
-  ggtitle("ARIMA model for whole time frame")
-
-autoplot(sarimax_flights) +
-  geom_line(aes(x=holidays_test_set$date, y=holidays_test_set$departures)) +
-  ggtitle("SARIMAX model with for holiday regressor")
-
-```
-
-
-
-```{r arima_model_before_covid}
-#Before covid
-str(Flights_Holidays_Covid)
-
-#Creating train and test sets
-holidays_total_covid = Flights_Holidays_Covid %>% mutate(is_holiday = as.factor(is_holiday)) %>% as_tsibble()
-holidays_train_covid = holidays_total_covid %>% filter( date < as.Date("2019-08-01"))
-holidays_test_covid = holidays_total_covid %>% filter(date >= as.Date("2019-08-01"))
-
-
-#Without holidays
-arima_flights_holidays = holidays_train_covid %>% 
-  model(ARIMA(departures, stepwise= FALSE)) %>% 
-  forecast(h = nrow(holidays_test_covid))
-
-#With holidays
-sarimax_flights_holidays = holidays_train_covid %>% 
-  model(ARIMA(departures ~ is_holiday, stepwise= FALSE)) %>% 
-  forecast(new_data = as_tsibble(holidays_test_covid))
-
-
-#Plotting
-
-#Without regressors
-autoplot(arima_flights_holidays) +
-  geom_line(aes(x=holidays_test_covid$date, y=holidays_test_covid$departures)) +
-  ggtitle("ARIMA forecast")
-
-#With regressors
-autoplot(sarimax_holiday) + 
-  geom_line(aes(x = holidays_test_covid$date, y = holidays_test_covid$departures)) +
-  ggtitle("SARIMAX forecast with is_holiday regressor") 
-
-
-```
+As seen in the results above, we have a stronger correlation score and a much smaller p-value for data recorded until Covid. It shows that in normal times, there is a significant correlation between holidays and departures. The ability to predict holidays efficiently allows us to use this information as covariate for predicting the number of flights.

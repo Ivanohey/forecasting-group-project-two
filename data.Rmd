@@ -104,39 +104,39 @@ ggplot_na_distribution(Gva_Traffic$departures)
 #Scrapping the web pages containing the information for all seasons and cantons
 page = read_html("https://www.holidays-info.com/switzerland/school-holidays/2015/")
 school_2015 = html_nodes(page, "table") %>% html_table()
-school_2015 = as.data.frame(school_2015)
+school_2015 = as.data.frame(school_2015) %>% filter(Var.1 == "Geneva" | Var.1 == "Vaud")# | Var.1 == "Valais" | Var.1 == "Neuchâtel")
 
 page = read_html("https://www.holidays-info.com/switzerland/school-holidays/2016/")
 school_2016 = html_nodes(page, "table") %>% html_table()
-school_2016 = as.data.frame(school_2016)
+school_2016 = as.data.frame(school_2016) 
 
 page = read_html("https://www.holidays-info.com/switzerland/school-holidays/2017/")
 school_2017 = html_nodes(page, "table") %>% html_table()
-school_2017 = as.data.frame(school_2017)
+school_2017 = as.data.frame(school_2017) 
 
 page = read_html("https://www.holidays-info.com/switzerland/school-holidays/2018/")
 school_2018 = html_nodes(page, "table") %>% html_table()
-school_2018 = as.data.frame(school_2018)
+school_2018 = as.data.frame(school_2018) 
 
 page = read_html("https://www.holidays-info.com/switzerland/school-holidays/2018/")
 school_2018 = html_nodes(page, "table") %>% html_table()
-school_2018 = as.data.frame(school_2018)
+school_2018 = as.data.frame(school_2018) 
 
 page = read_html("https://www.holidays-info.com/switzerland/school-holidays/2019/")
 school_2019 = html_nodes(page, "table") %>% html_table()
-school_2019 = as.data.frame(school_2019)
+school_2019 = as.data.frame(school_2019) 
 
 page = read_html("https://www.holidays-info.com/switzerland/school-holidays/2020/")
 school_2020 = html_nodes(page, "table") %>% html_table()
-school_2020 = as.data.frame(school_2020)
+school_2020 = as.data.frame(school_2020) 
 
 page = read_html("https://www.holidays-info.com/switzerland/school-holidays/2021/")
 school_2021 = html_nodes(page, "table") %>% html_table()
-school_2021 = as.data.frame(school_2021)
+school_2021 = as.data.frame(school_2021) 
 
 page = read_html("https://www.holidays-info.com/switzerland/school-holidays/2022/")
 school_2022 = html_nodes(page, "table") %>% html_table()
-school_2022 = as.data.frame(school_2022)
+school_2022 = as.data.frame(school_2022) 
 
 #Creating dataset containing school holidays
 start_date <- as.Date("2016-01-01")
@@ -239,6 +239,9 @@ school_holidays_df = populate_data_holidays(school_holidays, formatted_strings_2
 school_holidays_df = populate_data_holidays(school_holidays, formatted_strings_2020, ", 2020")
 school_holidays_df = populate_data_holidays(school_holidays, formatted_strings_2021, ", 2021")
 school_holidays_df = populate_data_holidays(school_holidays, formatted_strings_2022, ", 2022")
+school_holidays_df = school_holidays_df %>% rename(date = Date)
+
+Gva_F_H = left_join( x= Gva_Traffic, y=school_holidays_df, by="date")
 
 ```
 
@@ -266,7 +269,7 @@ ggplot(weather, aes(x = Date, y = windspeed)) +
   geom_line() +
   labs(title = "Wind speed over time", x = "Date", y = "Wind speed")
 
-Gva_F_H_W = left_join(Gva_Traffic, Gva_Weather, by = "date") 
+Gva_F_H_W = left_join(Gva_F_H, Gva_Weather, by = "date") 
 
 ```
 
@@ -396,6 +399,7 @@ I discovered the imputeTS package, which includes various imputation methods, as
 library(imputeTS)
 
 #No missing data in the full dataset
+ggplot_na_distribution(Gva_F_H_W$is_holiday)
 ggplot_na_distribution(Gva_F_H_W$windspeed)
 ggplot_na_distribution(Gva_F_H_W$departures)
 ggplot_na_distribution(Gva_F_H_W$temp)
