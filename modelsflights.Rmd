@@ -7,15 +7,16 @@ First, let's create a table that contains all the forecasts from our covariates:
 
 ```{r}
 Full_Data = left_join(weather, Flights_Holidays, by="date")
+Full_Data_Until_Covid = Full_Data[Full_Data$date <= as.Date("2020-01-31"),]
 
 #Join all covariate forecast tables together
-cov_fc <- left_join(forecast_table_tslm_temp, forecast_table_tslm_precip, by = "Date")
-cov_fc <- left_join(cov_fc, forecast_table_tslm_windspeed, by = "Date")
-cov_fc <- left_join(cov_fc, forecast_table_tslm_humidity, by = "Date")
+# cov_fc <- left_join(forecast_table_tslm_temp, forecast_table_tslm_precip, by = "Date")
+# cov_fc <- left_join(cov_fc, forecast_table_tslm_windspeed, by = "Date")
+# cov_fc <- left_join(cov_fc, forecast_table_tslm_humidity, by = "Date")
 
 # round columns 2 to 5 to 2 decimals
-cov_fc <- cov_fc %>%
-  mutate_at(vars(2:5), ~ round(., 2))
+# cov_fc <- cov_fc %>%
+#   mutate_at(vars(2:5), ~ round(., 2))
 
 ```
 
@@ -32,14 +33,13 @@ cov_fc <- cov_fc %>%
 
 ```{r arima_model_with_covid }
 #With covid
-holidays_total = Flights_Holidays %>% mutate(is_holiday = as.factor(is_holiday)) %>% as_tsibble()
+holidays_total = Full_Data %>% mutate(is_holiday = as.factor(is_holiday)) %>% as_tsibble(index = date)
 holidays_train_set = holidays_total %>% filter(date < as.Date("2023-02-28"))
 holidays_test_set = holidays_total %>% filter(date >= as.Date("2023-02-28"))
 
-
 #Without holidays
 arima_flights = holidays_train_set %>% 
-  model(ARIMA(departures, stepwise= FALSE, approximation = FALSE)) %>% 
+  model(ARIMA(departures, stepwise= FALSE)) %>% 
   forecast(h = nrow(holidays_test_set))
 
 #With holidays
@@ -47,6 +47,11 @@ sarimax_flights = holidays_train_set %>%
   model(ARIMA(departures ~ is_holiday, stepwise= FALSE)) %>% 
   forecast(new_data = as_tsibble(holidays_test_set))
 
+#With holidays and windspeed
+
+
+
+#Plotting
 autoplot(arima_flights) +
   geom_line(aes(x=holidays_test_set$date, y=holidays_test_set$departures)) +
   ggtitle("ARIMA model for whole time frame")
@@ -64,7 +69,7 @@ autoplot(sarimax_flights) +
 str(Flights_Holidays_Covid)
 
 #Creating train and test sets
-holidays_total_covid = Flights_Holidays_Covid %>% mutate(is_holiday = as.factor(is_holiday)) %>% as_tsibble()
+holidays_total_covid = Full_Data_Until_Covid %>% mutate(is_holiday = as.factor(is_holiday)) %>% as_tsibble(index = date)
 holidays_train_covid = holidays_total_covid %>% filter( date < as.Date("2019-08-01"))
 holidays_test_covid = holidays_total_covid %>% filter(date >= as.Date("2019-08-01"))
 
