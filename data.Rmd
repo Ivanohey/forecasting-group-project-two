@@ -1,73 +1,127 @@
 # Data cleaning
 
-```{r data_merge}
-#Flights data
-data_2020 <- read.csv("data/2020-States.csv")
-data_2021 <- read.csv("data/2021-States.csv")
-data_2022 <- read.csv("data/2022-States.csv")
-data_2023 <- read.csv("data/2023-States.csv")
+```{r new_data}
+#Flights from and to GVA airport daily
+Airport_Traffic <- read_excel("data/Airport_Traffic.xlsx", sheet = "DATA")
+Airport_Traffic = select(Airport_Traffic, FLT_DATE, APT_NAME, STATE_NAME, FLT_DEP_1, FLT_ARR_1) %>% rename(date = FLT_DATE, airport=APT_NAME, departures=FLT_DEP_1, arrivals=FLT_ARR_1)
 
-#Merge all flights datasets together
-data_2019 <- select(data_2020, Entity, Day.2019, Flights.2019..Reference.) %>% rename(Day = Day.2019, Flights = Flights.2019..Reference.)
-data_2020 <- select(data_2020, Entity, Day, Flights)
-data_2021 <- select(data_2021, Entity, Day, Flights)
-data_2022 <- select(data_2022, Entity, Day, Flights)
-data_2023 <- select(data_2023, Entity, Day, Flights)
-data_all_years <- rbind(data_2019, data_2020, data_2021, data_2022, data_2023)
+#Selecting only swiss airports
+Swiss_Traffic = Airport_Traffic[(Airport_Traffic$STATE_NAME=="Switzerland"),]
 
-#Select only data where country == switzerland
-flights <- data_all_years[data_all_years$Entity == 'Switzerland',]
-flights$year_month = format(as.Date(flights$Day), "%Y-%m")
 
-flights <- flights %>% select(Day,Flights) %>% set_names(c("Date", "Flights"))
+#####ONLY GENEVA TRAFFIC######
+Gva_Traffic = Airport_Traffic[(Airport_Traffic$airport=="Geneva"),]
 
-#Convert the "Date" column to a date format:
-#flights$Date <- parse_date_time(flights$Date, orders = c("%d-%b-%y", "%b %d, %Y"))
-flights <- flights %>% mutate(Date = as.Date(Date, format = "%Y-%m-%d"))
+#Converting to dates
+Gva_Traffic = Gva_Traffic %>% mutate(date = as.Date(date, format="%Y-%m-%d"))
 
-#This shows that date is correctly converted to date type
-str(flights)
+duplicates(Gva_Traffic)
 
-#there are a bunch of duplicated rows, i guess because of the way the data was imported? 
-duplicates(flights)
+#Adding up all the flights in the same day
+Gva_Traffic = Gva_Traffic %>% aggregate(departures ~ date, sum)
+head(Swiss_Traffic)
 
-#This will remove all the duplicated rows, and only keep one of them
-flights <- flights %>% 
-  distinct()
+#Plotting our data
+ggplot(Gva_Traffic) + geom_line(aes(x=date,y=departures))
 
-#now there's no more duplicates
-duplicates(flights)
+#Quite a lot of missing data
+ggplot_na_distribution(Gva_Traffic$departures)
 
+#Using moving average to fill the missing data
+Gva_Traffic$departures = na_ma(Gva_Traffic$departures)
+
+ggplot_na_distribution(Gva_Traffic$departures)
+
+```
+
+```{r old_data}
+# #Flights data
+# data_2020 <- read.csv("data/2020-States.csv")
+# data_2021 <- read.csv("data/2021-States.csv")
+# data_2022 <- read.csv("data/2022-States.csv")
+# data_2023 <- read.csv("data/2023-States.csv")
+# 
+# #Merge all flights datasets together
+# data_2019 <- select(data_2020, Entity, Day.2019, Flights.2019..Reference.) %>% rename(Day = Day.2019, Flights = Flights.2019..Reference.)
+# data_2020 <- select(data_2020, Entity, Day, Flights)
+# data_2021 <- select(data_2021, Entity, Day, Flights)
+# data_2022 <- select(data_2022, Entity, Day, Flights)
+# data_2023 <- select(data_2023, Entity, Day, Flights)
+# data_all_years <- rbind(data_2019, data_2020, data_2021, data_2022, data_2023)
+# 
+# #Select only data where country == switzerland
+# flights <- data_all_years[data_all_years$Entity == 'Switzerland',]
+# flights$year_month = format(as.Date(flights$Day), "%Y-%m")
+# 
+# flights <- flights %>% select(Day,Flights) %>% set_names(c("Date", "Flights"))
+# 
+# #Convert the "Date" column to a date format:
+# #flights$Date <- parse_date_time(flights$Date, orders = c("%d-%b-%y", "%b %d, %Y"))
+# flights <- flights %>% mutate(Date = as.Date(Date, format = "%Y-%m-%d"))
+# 
+# #This shows that date is correctly converted to date type
+# str(flights)
+# 
+# #there are a bunch of duplicated rows, i guess because of the way the data was imported? 
+# duplicates(flights)
+# 
+# #This will remove all the duplicated rows, and only keep one of them
+# flights <- flights %>% 
+#   distinct()
+# 
+# #now there's no more duplicates
+# duplicates(flights)
+# 
 
 ```
 
 ```{r holiday_data_scrapping}
 
-#Loading all the public holiday days
-page = read_html("https://www.officeholidays.com/countries/switzerland/2019");
-table_2019 = html_nodes(page, sprintf(".%s", "country-table")) %>% html_table()
-holidays_2019 = as.data.frame(table_2019) 
-holidays_2019$Date = paste0(holidays_2019$Date, " 2019")
+# #Loading all the public holiday days
+# page = read_html("https://www.officeholidays.com/countries/switzerland/2019");
+# table_2019 = html_nodes(page, sprintf(".%s", "country-table")) %>% html_table()
+# holidays_2019 = as.data.frame(table_2019) 
+# holidays_2019$Date = paste0(holidays_2019$Date, " 2019")
+# 
+# page = read_html("https://www.officeholidays.com/countries/switzerland/2020");
+# table_2020 = html_nodes(page, sprintf(".%s", "country-table")) %>% html_table()
+# holidays_2020 = as.data.frame(table_2020)
+# holidays_2020$Date = paste0(holidays_2020$Date, " 2020")
+# 
+# page = read_html("https://www.officeholidays.com/countries/switzerland/2021");
+# table_2021 = html_nodes(page, sprintf(".%s", "country-table")) %>% html_table()
+# holidays_2021 = as.data.frame(table_2021)
+# holidays_2021$Date = paste0(holidays_2021$Date, " 2021")
+# 
+# page = read_html("https://www.officeholidays.com/countries/switzerland/2022");
+# table_2022 = html_nodes(page, sprintf(".%s", "country-table")) %>% html_table()
+# holidays_2022 = as.data.frame(table_2022)
+# holidays_2022$Date = paste0(holidays_2022$Date, " 2022")
+# 
+# holidays_all_years = rbind(holidays_2019, holidays_2020, holidays_2021, holidays_2022)
+# holidays_all_years = holidays_all_years[holidays_all_years$Type != "Not A Public Holiday", ]
 
-page = read_html("https://www.officeholidays.com/countries/switzerland/2020");
-table_2020 = html_nodes(page, sprintf(".%s", "country-table")) %>% html_table()
-holidays_2020 = as.data.frame(table_2020)
-holidays_2020$Date = paste0(holidays_2020$Date, " 2020")
+#Scrapping the web pages containing the information for all seasons and cantons
+page = read_html("https://www.holidays-info.com/switzerland/school-holidays/2015/")
+school_2015 = html_nodes(page, "table") %>% html_table()
+school_2015 = as.data.frame(school_2015)
 
-page = read_html("https://www.officeholidays.com/countries/switzerland/2021");
-table_2021 = html_nodes(page, sprintf(".%s", "country-table")) %>% html_table()
-holidays_2021 = as.data.frame(table_2021)
-holidays_2021$Date = paste0(holidays_2021$Date, " 2021")
+page = read_html("https://www.holidays-info.com/switzerland/school-holidays/2016/")
+school_2016 = html_nodes(page, "table") %>% html_table()
+school_2016 = as.data.frame(school_2016)
 
-page = read_html("https://www.officeholidays.com/countries/switzerland/2022");
-table_2022 = html_nodes(page, sprintf(".%s", "country-table")) %>% html_table()
-holidays_2022 = as.data.frame(table_2022)
-holidays_2022$Date = paste0(holidays_2022$Date, " 2022")
+page = read_html("https://www.holidays-info.com/switzerland/school-holidays/2017/")
+school_2017 = html_nodes(page, "table") %>% html_table()
+school_2017 = as.data.frame(school_2017)
 
-holidays_all_years = rbind(holidays_2019, holidays_2020, holidays_2021, holidays_2022)
-holidays_all_years = holidays_all_years[holidays_all_years$Type != "Not A Public Holiday", ]
+page = read_html("https://www.holidays-info.com/switzerland/school-holidays/2018/")
+school_2018 = html_nodes(page, "table") %>% html_table()
+school_2018 = as.data.frame(school_2018)
 
-#Scrapping the datasets containing the information for all seasons and cantons
+page = read_html("https://www.holidays-info.com/switzerland/school-holidays/2018/")
+school_2018 = html_nodes(page, "table") %>% html_table()
+school_2018 = as.data.frame(school_2018)
+
 page = read_html("https://www.holidays-info.com/switzerland/school-holidays/2019/")
 school_2019 = html_nodes(page, "table") %>% html_table()
 school_2019 = as.data.frame(school_2019)
@@ -85,8 +139,8 @@ school_2022 = html_nodes(page, "table") %>% html_table()
 school_2022 = as.data.frame(school_2022)
 
 #Creating dataset containing school holidays
-start_date <- as.Date("2019-01-01")
-end_date <- as.Date("2022-12-31")
+start_date <- as.Date("2016-01-01")
+end_date <- as.Date("2023-12-31")
 dates <- seq(start_date, end_date, by = "day")
 school_holidays_df <- data.frame(Date = dates, is_holiday = 0) #All rows are equal to 0
 
@@ -108,6 +162,10 @@ extractValuesToList <- function(data) {
   return(valuesList)  # Return the list of values
 }
 
+formatted_strings_2015 = extractValuesToList(school_2015)
+formatted_strings_2016 = extractValuesToList(school_2016)
+formatted_strings_2017 = extractValuesToList(school_2017)
+formatted_strings_2018 = extractValuesToList(school_2018)
 formatted_strings_2019 = extractValuesToList(school_2019)
 formatted_strings_2020 = extractValuesToList(school_2020)
 formatted_strings_2021 = extractValuesToList(school_2021)
@@ -173,6 +231,10 @@ populate_data_holidays <- function(main_dataset, formatted_strings_year, current
 }
 
 #Calling our function to populate our final dataset of holidays containing all holidays
+school_holidays_df = populate_data_holidays(school_holidays, formatted_strings_2015, ", 2015")
+school_holidays_df = populate_data_holidays(school_holidays, formatted_strings_2016, ", 2016")
+school_holidays_df = populate_data_holidays(school_holidays, formatted_strings_2017, ", 2017")
+school_holidays_df = populate_data_holidays(school_holidays, formatted_strings_2018, ", 2018")
 school_holidays_df = populate_data_holidays(school_holidays, formatted_strings_2019, ", 2019")
 school_holidays_df = populate_data_holidays(school_holidays, formatted_strings_2020, ", 2020")
 school_holidays_df = populate_data_holidays(school_holidays, formatted_strings_2021, ", 2021")
@@ -182,39 +244,33 @@ school_holidays_df = populate_data_holidays(school_holidays, formatted_strings_2
 
 
 
-```{r}
-#Weather data
-weather <- read_excel("data/switzerland weather.xlsx")
-
-#Select appropriate columns (which covariates we will use)
-
-weather <- weather %>% select(datetime,temp, precip, snow, windspeed, visibility, humidity)
-
-#change column names to match with other datasets
-colnames(weather)[1] <- "Date"
+```{r gva_weather_data}
+#Adding data for Geneva weather
+Gva_Weather = read_csv("./data/gva_weather.csv") %>% select(datetime,temp, precip, snow, windspeed, visibility, humidity)
+Gva_Weather = rename(Gva_Weather, date = datetime)
 
 #Convert the "Date" column to a date format: (Previous type was POSIXct first time i'm seeing that)
 #weather$Date <- parse_date_time(weather$Date, orders = c("%d-%b-%y", "%b %d, %Y"))
-weather <- weather %>% mutate(Date = as.Date(Date))
+weather <- Gva_Weather %>% mutate(Date = as.Date(date))
 
 #Some summary statistics for all columns
-#weather %>% dfSummary(style = "grid")
-
 str(weather)
 
 #There are no duplicates here
-duplicates(weather)
+#duplicates(weather)
 
 #any(is.na(weather))
 
 #visibility data for 2022-2023 looks very sus
-ggplot(weather, aes(x = Date, y = visibility)) +
+ggplot(weather, aes(x = Date, y = windspeed)) +
   geom_line() +
-  labs(title = "Visibility over time", x = "Date", y = "Visibility")
+  labs(title = "Wind speed over time", x = "Date", y = "Wind speed")
+
+Gva_F_H_W = left_join(Gva_Traffic, Gva_Weather, by = "date") 
 
 ```
 
-```{r}
+```{r oil_data}
 #Oil data 
 
 oil <- read.csv("data/BrentOilPrices.csv")
@@ -309,26 +365,26 @@ duplicates(oil)
 
 ## Merging the datasets
 
-```{r}
-#Merging datasets together 
-data <- flights %>%
-  left_join(oil, by = "Date") %>%
-  left_join(weather, by = "Date")
-
-data <- data %>% 
-  filter(Date < as.Date("2022-11-14"))
-
-#Convert to tsibble object  
-ts_data <- data %>%
-  as_tsibble(index = Date)
-
-
-#Plot the time series 
-ts_data %>% autoplot(Price) +
-  labs(title = "Brent Oil Prices 2019 onwards", x = "Date", y = "Price")
-
-#Info on our variables
-str(ts_data)
+```{r merging oil and old_flights data}
+# #Merging datasets together 
+# data <- flights %>%
+#   #left_join(oil, by = "Date") %>%
+#   left_join(weather, by = "Date")
+# 
+# data <- data %>% 
+#   filter(Date < as.Date("2022-11-14"))
+# 
+# #Convert to tsibble object  
+# ts_data <- data %>%
+#   as_tsibble(index = Date)
+# 
+# 
+# # #Plot the time series 
+# # ts_data %>% autoplot(Price) +
+# #   labs(title = "Brent Oil Prices 2019 onwards", x = "Date", y = "Price")
+# 
+# #Info on our variables
+# str(ts_data)
 
 ```
 
@@ -339,18 +395,22 @@ I discovered the imputeTS package, which includes various imputation methods, as
 ```{r}
 library(imputeTS)
 
-#This graph looks terrible but it shows you all the missing data 
-ggplot_na_distribution(ts_data$Price)
+#No missing data in the full dataset
+ggplot_na_distribution(Gva_F_H_W$windspeed)
+ggplot_na_distribution(Gva_F_H_W$departures)
+ggplot_na_distribution(Gva_F_H_W$temp)
+ggplot_na_distribution(Gva_F_H_W$humidity)
 
-#missing data statistics -> actually quite useful to see what's going on
-statsNA(ts_data$Price)
 
-#I'm choosingthe moving average method to impute the data.
-ts_data$Price <- na_ma(ts_data$Price)
-
-#Plot the time series 
-ts_data %>% autoplot(Price) +
-  labs(title = "Brent Oil Prices 2019 onwards - IMPUTED", x = "Date", y = "Price")
+# #missing data statistics -> actually quite useful to see what's going on
+# statsNA(ts_data$Price)
+# 
+# #I'm choosingthe moving average method to impute the data.
+# ts_data$Price <- na_ma(ts_data$Price)
+# 
+# #Plot the time series
+# ts_data %>% autoplot(Price) +
+#   labs(title = "Brent Oil Prices 2019 onwards - IMPUTED", x = "Date", y = "Price")
 
 ```
 In the imputeTS package, there are a lot of methods to impute the data, and after trying some we decided to stick with the weighted moving average. This is because most frequently (185 times) the gap is only 2 NA values long. There are 13 cases where the gap is 3 NA's long, and only 4 cases where the gap is 4 NA's long. This means that using the weighted moving average is providing a very good approximation of the price data. 
@@ -360,29 +420,29 @@ If the gaps were longer and the NA's were all concentrated in one big area, then
 Finally, let's check to see if there's any missing data after imputation
 
 ```{r}
-#Final check
-any(is.na(ts_data)) #seems there are still some NA's
-
-# Identify rows with missing values
-na_rows <- !complete.cases(ts_data)
-
-# Print rows with missing values
-ts_data[na_rows,]
+# #Final check
+# any(is.na(ts_data)) #seems there are still some NA's
+# 
+# # Identify rows with missing values
+# na_rows <- !complete.cases(ts_data)
+# 
+# # Print rows with missing values
+# ts_data[na_rows,]
 
 ```
 It looks like there are 6 rows with missing values in the visibility column. I will just use the same same function as previously to impute them. 
 
 ```{r}
-#I'm choosing the moving average method to impute the data.
-ts_data$visibility <- na_ma(ts_data$visibility)
-
-any(is.na(ts_data))
+# #I'm choosing the moving average method to impute the data.
+# ts_data$visibility <- na_ma(ts_data$visibility)
+# 
+# any(is.na(ts_data))
 ```
 
 Finally, I need to round the values to 2 decimals for Price and visibility
 
 ```{r}
-ts_data$Price <- round(ts_data$Price, 2)
-ts_data$visibility <- round(ts_data$visibility, 2)
+# # ts_data$Price <- round(ts_data$Price, 2)
+# ts_data$visibility <- round(ts_data$visibility, 2)
 ```
 
