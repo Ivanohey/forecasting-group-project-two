@@ -7,13 +7,13 @@ In this first part of our EDA, we will explore each variable on its own, before 
 ### Plots of each variable over time: 
 
 ```{r}
-Gva_F_H_W = Gva_F_H_W %>% as_tsibble(index="date")
+Swiss_F_H_W = Swiss_F_H_W %>% as_tsibble(index="date")
 
 #Flights plot 
-Gva_F_H_W %>% autoplot(departures) +
+Swiss_F_H_W %>% autoplot(departures) +
   labs(title = "Flights over time", x = "Date", y = "Number of Flights")
 
-Gva_F_H_W %>% autoplot(is_holiday) +
+Swiss_F_H_W %>% autoplot(is_holiday) +
   labs(title = "Holidays over time", x = "Date", y = "Is holiday")
 
 #Price plot
@@ -21,27 +21,27 @@ Gva_F_H_W %>% autoplot(is_holiday) +
 #   labs(title = "Brent Oil Prices 2019 onwards", x = "Date", y = "Price")
 
 #temp plot
-Gva_F_H_W %>% autoplot(temp) +
+Swiss_F_H_W %>% autoplot(temp) +
   labs(title = "Temperature over time", x = "Date", y = "Temperature in Celsius")
 
 #precip plot
-Gva_F_H_W %>% autoplot(precip) +
+Swiss_F_H_W %>% autoplot(precip) +
   labs(title = "Precipitation over time", x = "Date", y = "Precipitation")
 
 #snow plot
-Gva_F_H_W %>% autoplot(snow) +
+Swiss_F_H_W %>% autoplot(snow) +
   labs(title = "Snow over time", x = "Date", y = "Snow")
 
 #windspeed plot
-Gva_F_H_W %>% autoplot(windspeed) +
+Swiss_F_H_W %>% autoplot(windspeed) +
   labs(title = "Windspeed over time", x = "Date", y = "Windspeed")
 
-#visibility plot
-Gva_F_H_W %>% autoplot(visibility) +
-  labs(title = "Visibility over time", x = "Date", y = "Visibility")
+# #visibility plot
+# Swiss_F_H_W %>% autoplot(visibility) +
+#   labs(title = "Visibility over time", x = "Date", y = "Visibility")
 
 #humidity plot
-Gva_F_H_W %>% autoplot(humidity) +
+Swiss_F_H_W %>% autoplot(humidity) +
   labs(title = "Humidity over time", x = "Date", y = "Humidity")
 
 
@@ -59,23 +59,11 @@ Here are some observations based on the data-over-time graphs above:
 
 ### Specific plots for interesting variables 
 
-
-Now lets look at what's happening to visibility:
-
-```{r}
-#selecting data from november 2019 until march 2022 
-Gva_F_H_W %>% 
-  filter(date >= as.Date("2021-12-01") & date <= as.Date("2022-10-31")) %>% 
-  autoplot(visibility)
-```
-
-This makes absolutely no sense, why is visibility consistently at the same value for almost all of 2022? Did something change in the weather or is this just wrong data? Probably the data is just wrong... If we do decide to use visibility in order to forecast, we will have to stop using visibility before the point where it gets weird (January 2022)
-
 ### Decomposition 
 
 ```{r}
 #STL Decomposition for the flights
-Gva_F_H_W %>%
+Swiss_F_H_W %>%
   model(STL(departures ~ trend(window = 7) + season(window = "periodic"),
     robust = TRUE)) %>%
   components() %>%
@@ -89,28 +77,28 @@ Gva_F_H_W %>%
 #   autoplot()
 
 #STL Decomposition for the temperature
-Gva_F_H_W %>%
+Swiss_F_H_W %>%
   model(STL(temp ~ trend(window = 7) + season(window = "periodic"),
     robust = TRUE)) %>%
   components() %>%
   autoplot()
 
 #STL Decomposition for the precip
-Gva_F_H_W %>%
+Swiss_F_H_W %>%
   model(STL(precip ~ trend(window = 7) + season(window = "periodic"),
     robust = TRUE)) %>%
   components() %>%
   autoplot()
 
 #STL Decomposition for the windspeed
-Gva_F_H_W %>%
+Swiss_F_H_W %>%
   model(STL(windspeed ~ trend(window = 7) + season(window = "periodic"),
     robust = TRUE)) %>%
   components() %>%
   autoplot()
 
 #STL Decomposition for the humidity
-Gva_F_H_W %>%
+Swiss_F_H_W %>%
   model(STL(humidity ~ trend(window = 7) + season(window = "periodic"),
     robust = TRUE)) %>%
   components() %>%
@@ -125,15 +113,15 @@ In this section of our EDA, we will explore the relationships between our variab
 Here are the specific correlations between our variables:
 
 ```{r}
-cor(Gva_F_H_W[,2:9])
+cor(Swiss_F_H_W[,2:8])
 ```
 
 Here's a heatmap of the correlations to help visualize the relationships between the variables: 
 
 ```{r}
-plot_correlation(Gva_F_H_W)
+plot_correlation(Swiss_F_H_W)
 
-corr_matrix <- cor(Gva_F_H_W[,2:9])
+corr_matrix <- cor(Swiss_F_H_W[,2:8])
 
 corrplot(corr_matrix, type = "upper", order = "hclust", tl.col = "black")
 ```
@@ -171,7 +159,7 @@ Based on our EDA, we have come to the following conclusions, regarding our analy
 
 ```{r}
 #here's the final dataset (excluding visibility and snow)
-Gva_F_H_W <- Gva_F_H_W[, !(names(Gva_F_H_W) %in% c("snow", "visibility"))]
+Swiss_F_H_W <- Swiss_F_H_W[, !(names(Swiss_F_H_W) %in% c("snow", "visibility"))]
 
 
 # #Oil training and test

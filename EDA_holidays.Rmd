@@ -4,12 +4,12 @@ Holidays = school_holidays_df
 Holidays_ts = as_tsibble(Holidays,index = date)
 
 #Flights to tsibble
-Gva_Traffic_tsibble = as_tsibble(Gva_Traffic, index = date)
+Swiss_Traffic_tsibble = as_tsibble(Swiss_Traffic, index = date)
 
 Weather = weather %>% as_tsibble(index=date)
 
 #Seasonal decomposition of the flights
-dcmp_gva = Gva_Traffic_tsibble %>% model(stl = STL(departures))
+dcmp_gva = Swiss_Traffic_tsibble %>% model(stl = STL(departures))
 components(dcmp_gva) %>% autoplot()
 
 ```
@@ -29,7 +29,7 @@ From the ETS decomposition above it is very difficult to interpret the trend. Ev
 
 
 # Flights_Holidays = left_join(Swiss_Traffic, Holidays, by="date") %>% group_by(date) %>% summarise(departures = sum(departures), is_holiday = is_holiday)
-Flights_Holidays = Gva_F_H_W
+Flights_Holidays = Swiss_F_H_W
 Flights_Holidays_Covid = Flights_Holidays[Flights_Holidays$date <= as.Date("2020-01-31"),]
 
 #Plot the flights until COVID and holidays
@@ -105,13 +105,12 @@ set.seed(123)
 corr = cor.test(Flights_Holidays$departures, Flights_Holidays$is_holiday)
 print(corr)
 ```
-Null hypothesis: There is no correlation
-Alternative hypothesis: There is a correlation
-Using Pearson's correlation test, we observe that our p-value is (0.1255 > 0.05) for a 95% confidence interval, in this case we cannot reject the null hypothesis, meaning that there is no significant correlation.
+Null hypothesis: There is no correlation. <br>
+Alternative hypothesis: There is a correlation. <br>
+Using Pearson's correlation test, we observe that our p-value is 0.02992. Since our p-value is smaller that 0.05 for a 95% confidence interval, we can reject the null hypothesis, meaning that there is a significant correlation between our departures variable and our is_holiday variable even though it is quite small (0.0422)
 
-This shows evidence of our initial assumption that holidays impact the number of flights.
+However, we need to confirm our assumption by looking at older data. In fact, since the COVID pandemic happened, the number of flights is slowling coming back to where it was before it. It is therefore intersting to see the relationship before holidays and departures before covid.
 
-We can confirm this by looking at the data before COVID 19:
 
 ```{r correlation_before_covid}
 set.seed(123)
@@ -121,4 +120,4 @@ print(corr_before_covid)
 
 ```
 
-As seen in the results above, we have a stronger correlation score and a much smaller p-value for data recorded until Covid. It shows that in normal times, there is a significant correlation between holidays and departures. The ability to predict holidays efficiently allows us to use this information as covariate for predicting the number of flights.
+As seen in the results above, we have a much stronger correlation score and a much smaller p-value for the data recorded until Covid. It shows that in normal times, there is a significant correlation between holidays and departures. The ability to predict holidays efficiently allows us to use this information as covariate for predicting the number of departures.

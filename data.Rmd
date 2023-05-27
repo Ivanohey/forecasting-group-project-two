@@ -10,27 +10,23 @@ Swiss_Traffic = Airport_Traffic[(Airport_Traffic$STATE_NAME=="Switzerland"),]
 
 
 #####ONLY GENEVA TRAFFIC######
-Gva_Traffic = Airport_Traffic[(Airport_Traffic$airport=="Geneva"),]
+#Swiss_Traffic = Airport_Traffic[(Airport_Traffic$airport=="Geneva"),]
 
 #Converting to dates
-Gva_Traffic = Gva_Traffic %>% mutate(date = as.Date(date, format="%Y-%m-%d"))
+Swiss_Traffic = Swiss_Traffic %>% mutate(date = as.Date(date, format="%Y-%m-%d"))
 
-duplicates(Gva_Traffic)
+duplicates(Swiss_Traffic)
 
 #Adding up all the flights in the same day
-Gva_Traffic = Gva_Traffic %>% aggregate(departures ~ date, sum)
+Swiss_Traffic = Swiss_Traffic %>% aggregate(departures ~ date, sum)
 head(Swiss_Traffic)
 
 #Plotting our data
-ggplot(Gva_Traffic) + geom_line(aes(x=date,y=departures))
+ggplot(Swiss_Traffic) + geom_line(aes(x=date,y=departures))
 
+Swiss_Traffic$departures = na_ma(Swiss_Traffic$departures)
 #Quite a lot of missing data
-ggplot_na_distribution(Gva_Traffic$departures)
-
-#Using moving average to fill the missing data
-Gva_Traffic$departures = na_ma(Gva_Traffic$departures)
-
-ggplot_na_distribution(Gva_Traffic$departures)
+ggplot_na_distribution(Swiss_Traffic$departures)
 
 ```
 
@@ -241,35 +237,35 @@ school_holidays_df = populate_data_holidays(school_holidays, formatted_strings_2
 school_holidays_df = populate_data_holidays(school_holidays, formatted_strings_2022, ", 2022")
 school_holidays_df = school_holidays_df %>% rename(date = Date)
 
-Gva_F_H = left_join( x= Gva_Traffic, y=school_holidays_df, by="date")
+Swiss_F_H = left_join( x= Swiss_Traffic, y=school_holidays_df, by="date")
 
 ```
 
 
 
 ```{r gva_weather_data}
-#Adding data for Geneva weather
-Gva_Weather = read_csv("./data/gva_weather.csv") %>% select(datetime,temp, precip, snow, windspeed, visibility, humidity)
-Gva_Weather = rename(Gva_Weather, date = datetime)
+#Adding data for Swiss weather
+Swiss_Weather = read_csv("./data/switzerland_weather2016-2023.csv") %>% select(datetime,temp, precip, snow, windspeed, humidity)
+Swiss_Weather = rename(Swiss_Weather, date = datetime)
 
 #Convert the "Date" column to a date format: (Previous type was POSIXct first time i'm seeing that)
 #weather$Date <- parse_date_time(weather$Date, orders = c("%d-%b-%y", "%b %d, %Y"))
-weather <- Gva_Weather %>% mutate(Date = as.Date(date))
+weather <- Swiss_Weather %>% mutate(Date = as.Date(date))
 
 #Some summary statistics for all columns
 str(weather)
 
 #There are no duplicates here
-#duplicates(weather)
+duplicates(weather, index=date)
 
-#any(is.na(weather))
+any(is.na(weather))
 
 #visibility data for 2022-2023 looks very sus
 ggplot(weather, aes(x = Date, y = windspeed)) +
   geom_line() +
   labs(title = "Wind speed over time", x = "Date", y = "Wind speed")
 
-Gva_F_H_W = left_join(Gva_F_H, Gva_Weather, by = "date") 
+Swiss_F_H_W = left_join(Swiss_F_H, Swiss_Weather, by = "date") 
 
 ```
 
@@ -399,11 +395,11 @@ I discovered the imputeTS package, which includes various imputation methods, as
 library(imputeTS)
 
 #No missing data in the full dataset
-ggplot_na_distribution(Gva_F_H_W$is_holiday)
-ggplot_na_distribution(Gva_F_H_W$windspeed)
-ggplot_na_distribution(Gva_F_H_W$departures)
-ggplot_na_distribution(Gva_F_H_W$temp)
-ggplot_na_distribution(Gva_F_H_W$humidity)
+ggplot_na_distribution(Swiss_F_H_W$is_holiday)
+ggplot_na_distribution(Swiss_F_H_W$windspeed)
+ggplot_na_distribution(Swiss_F_H_W$departures)
+ggplot_na_distribution(Swiss_F_H_W$temp)
+ggplot_na_distribution(Swiss_F_H_W$humidity)
 
 
 # #missing data statistics -> actually quite useful to see what's going on
