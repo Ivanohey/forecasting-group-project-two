@@ -8,6 +8,7 @@ In this first part of our EDA, we will explore each variable on its own, before 
 
 ```{r}
 Swiss_F_H_W = Swiss_F_H_W %>% as_tsibble(index="date")
+Swiss_F_H_W_C = Swiss_F_H_W[Swiss_F_H_W$date < as.Date("2020-01-01"),]
 
 #Flights plot 
 Swiss_F_H_W %>% autoplot(departures) +
@@ -15,10 +16,6 @@ Swiss_F_H_W %>% autoplot(departures) +
 
 Swiss_F_H_W %>% autoplot(is_holiday) +
   labs(title = "Holidays over time", x = "Date", y = "Is holiday")
-
-#Price plot
-# Gva_F_H_W %>% autoplot(Price) +
-#   labs(title = "Brent Oil Prices 2019 onwards", x = "Date", y = "Price")
 
 #temp plot
 Swiss_F_H_W %>% autoplot(temp) +
@@ -35,10 +32,6 @@ Swiss_F_H_W %>% autoplot(snow) +
 #windspeed plot
 Swiss_F_H_W %>% autoplot(windspeed) +
   labs(title = "Windspeed over time", x = "Date", y = "Windspeed")
-
-# #visibility plot
-# Swiss_F_H_W %>% autoplot(visibility) +
-#   labs(title = "Visibility over time", x = "Date", y = "Visibility")
 
 #humidity plot
 Swiss_F_H_W %>% autoplot(humidity) +
@@ -68,13 +61,6 @@ Swiss_F_H_W %>%
     robust = TRUE)) %>%
   components() %>%
   autoplot()
-
-#STL Decomposition for the oil price
-# ts_data %>%
-#   model(STL(Price ~ trend(window = 7) + season(window = "periodic"),
-#     robust = TRUE)) %>%
-#   components() %>%
-#   autoplot()
 
 #STL Decomposition for the temperature
 Swiss_F_H_W %>%
@@ -113,17 +99,23 @@ In this section of our EDA, we will explore the relationships between our variab
 Here are the specific correlations between our variables:
 
 ```{r}
-cor(Swiss_F_H_W[,2:8])
+cor(Swiss_F_H_W[,2:7])
+cor(Swiss_F_H_W_C[,2:7])
 ```
 
 Here's a heatmap of the correlations to help visualize the relationships between the variables: 
 
 ```{r}
-plot_correlation(Swiss_F_H_W)
+plot_correlation(Swiss_F_H_W, title="Correlation matrix with COVID")
+plot_correlation(Swiss_F_H_W_C, title = "Correlation matrix before COVID")
 
-corr_matrix <- cor(Swiss_F_H_W[,2:8])
+#With COVID
+corr_matrix <- cor(Swiss_F_H_W[,2:7])
+corrplot(corr_matrix, type = "upper", order = "hclust", tl.col = "black", title="Correlation matrix with COVID")
 
-corrplot(corr_matrix, type = "upper", order = "hclust", tl.col = "black")
+#Without COVID
+corr_matrix_covid <- cor(Swiss_F_H_W_C[,2:7])
+corrplot(corr_matrix_covid, type = "upper", order = "hclust", tl.col = "black", title="Correlation matrix before COVID")
 ```
 
 From the correlation graph, we can say the following about the correlations between our variables:

@@ -8,11 +8,23 @@ First, let's create a table that contains all the forecasts from our covariates:
 ```{r}
 Full_Data = Flights_Holidays
 Full_Data_Until_Covid = Full_Data[Full_Data$date <= as.Date("2020-01-31"),]
+
+Full_Data_With_Forecasts_tslm = merge(Full_Data, forecast_table_tslm_temp, by = "date", all.x = TRUE)
+Full_Data_With_Forecasts_sarimax = merge(Full_Data, forecast_table_sarimax_temp, by = "date", all.x = TRUE)
+
+Full_Data_With_Forecasts_tslm$temp = ifelse(is.na(Full_Data_With_Forecasts_tslm$Temp_TSLM),
+                                            Full_Data_With_Forecasts_tslm$temp, 
+                                            Full_Data_With_Forecasts_tslm$Temp_TSLM)
+
+Full_Data_With_Forecasts_sarimax$temp = ifelse(is.na(Full_Data_With_Forecasts_sarimax$temp_SARIMAX),
+                                            Full_Data_With_Forecasts_sarimax$temp, 
+                                            Full_Data_With_Forecasts_sarimax$temp_SARIMAX)
+
 ```
 
 
 ```{r arima_model_with_covid }
-#With covid
+#With covid and forecasted values using TSLM
 holidays_total = Full_Data %>% mutate(is_holiday = as.factor(is_holiday)) %>% as_tsibble(index = date)
 holidays_train_set = holidays_total %>% filter(date < as.Date("2023-01-01"))
 holidays_test_set = holidays_total %>% filter(date >= as.Date("2023-01-01"))

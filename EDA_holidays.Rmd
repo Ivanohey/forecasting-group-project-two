@@ -94,14 +94,27 @@ biserial_plot_balanced = ggplot(data=balanced_data) + geom_point(aes(y=departure
   ggtitle("Biserial plot with data until Covid 19 - Undersampled data")
 biserial_plot_balanced
 
+#Boxplots 
+boxplot = ggplot(data= Flights_Holidays_Covid)+ 
+  aes(x=factor(is_holiday), y=departures) +
+  labs(x="Is Holiday", y="Departures") +
+  geom_boxplot() + 
+  ggtitle("Boxplots of departures until COVID")
+boxplot
+
+#Boxplots with undersampled data:
+boxplot_balanced = ggplot(data=balanced_data)+
+  aes(x=factor(is_holiday), y=departures)+
+  labs(x="Is Holiday", y="Departures") +
+  geom_boxplot() + 
+  ggtitle("Boxplots of departures until COVID with Undersampled data")
+boxplot_balanced
 ```
 
 
 ```{r correlations_with_covid}
-
 set.seed(123)
 
-#cor.test(flights_holidays_log$departures, flights_holidays_log$is_holiday)
 corr = cor.test(Flights_Holidays$departures, Flights_Holidays$is_holiday)
 print(corr)
 ```

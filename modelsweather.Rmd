@@ -8,8 +8,8 @@ Full_Data_Until_Covid = Full_Data[Full_Data$date <= as.Date("2020-01-31"),] %>% 
 
 datatable(Full_Data, options = list(pageLength = 6))
 
-weather_train_set = Full_Data[Full_Data$date < as.Date("2023-01-01"),]
-weather_test_set = Full_Data[Full_Data$date >= as.Date("2023-01-01"),]
+weather_train_set = Full_Data[Full_Data$date < as.Date("2023-03-01"),]
+weather_test_set = Full_Data[Full_Data$date >= as.Date("2023-03-01"),]
 weather_train_covid = Full_Data_Until_Covid[Full_Data_Until_Covid$date < as.Date("2020-01-01"),]
 weather_test_covid = Full_Data_Until_Covid[Full_Data_Until_Covid$date >= as.Date("2020-01-01"),]
 subset_weather = weather_train_set[weather_train_set$date >= as.Date("2022-11-01"),]
@@ -21,9 +21,9 @@ subset_weather_covid = weather_train_covid[weather_train_covid$date >= as.Date("
 
 ```{r ETS_temperature_with_covid}
 
-#Modelling ets automatically
+#Modelling ets using additive seasonal component
 ets_temp <- weather_train_set %>%
-  model(ETS(temp))
+  model(ETS(temp)) 
 
 #Getting the Accuracy scores for model
 report(ets_temp)
@@ -36,6 +36,7 @@ ets_temp %>% forecast(h = 30) %>% autoplot(subset_weather)+
   labs(title = "ETS Forecast for Temperature")
 
 ```
+
 ```{r ETS_temperature_before_covid}
 
 #Modelling ets automatically
@@ -54,58 +55,67 @@ ets_temp_covid %>% forecast(h = 30) %>% autoplot(subset_weather_covid)+
 
 ```
 
-
-Here we can see that the ETS model is complete garbage at predicting that temperatures will drop in November.
+As seen above, ETS is unusable for forecasting temperature. Maybe SARIMA would be more able to capture seasonality
 
 ### Forecasting Predictors with SARIMA
 
 ```{r SARIMA_temperature_with_covid}
 #Modelling ARIMA automatically
-arima_temp <- weather_train_set %>%
-  select(temp) %>%
-  model(ARIMA(temp, stepwise = FALSE)) 
+sarima_temp <- weather_train_set %>%
+  model(ARIMA(temp ~ humidity, stepwise = FALSE)) 
 
 #Getting the Accuracy scores for model
-report(arima_temp) #ARIMA(3,1,1)(2,0,0)[7]
+report(sarima_temp)
 
 #Forecasting using the models
-forecast_arima_temp <- arima_temp %>% forecast(h = 30)
+forecast_sarima_temp <- sarima_temp %>% forecast(weather_test_set)
 
 #Graphing the forecast
-arima_temp %>% forecast(h = 30) %>% autoplot(subset_weather)+
-  labs(title = "SARIMA Forecast for Temperature")
+autoplot(forecast_sarima_temp) +
+  geom_line(aes(x=weather_test_set$date, y=weather_test_set$temp)) +
+  geom_line(aes(x=subset_weather$date, y=subset_weather$temp))+
+  ggtitle("Temperature forecast - SARIMAX with Humidity predictor")
+
+
+forecast_table_sarimax_temp = as.data.frame(forecast_tslm_temp) %>% select(date, .mean) %>% rename(temp_SARIMAX = .mean)
+head(forecast_table_sarimax_temp)
+
 
 ```
+SARIMA does better in predicting an increase of temperatures starting in Spring
 ```{r SARIMA_temperature_before_covid}
-#Modelling ARIMA automatically
-arima_temp_covid <- weather_train_covid %>%
-  select(temp) %>%
-  model(ARIMA(temp, stepwise = FALSE)) 
-
-#Getting the Accuracy scores for model
-report(arima_temp_covid) #ARIMA(3,1,1)(2,0,0)[7]
-
-#Forecasting using the models
-forecast_arima_temp <- arima_temp_covid %>% forecast(h = 30)
-
-#Graphing the forecast
-arima_temp_covid %>% forecast(h = 30) %>% autoplot(subset_weather_covid)+
-  labs(title = "SARIMA Forecast for Temperature before COVID")
+# #Modelling ARIMA automatically
+# sarima_temp_covid <- weather_train_covid %>%
+#   model(ARIMA(temp ~ humidity, stepwise = FALSE)) 
+# 
+# #Getting the Accuracy scores for model
+# report(sarima_temp_covid)
+# 
+# #Forecasting using the models
+# forecast_sarima_temp_covid <- sarima_temp_covid %>% forecast(new_data = weather_test_covid)
+# 
+# # #Graphing the forecast
+# # sarima_temp_covid %>% forecast(weather_test_covid) %>% autoplot(subset_weather_covid)+
+# #   labs(title = "SARIMA Forecast for Temperature before COVID with Humidity")
+# 
+# autoplot(forecast_sarima_temp_covid) +
+#   geom_line(aes(x=weather_test_covid$date, y=weather_test_covid$temp)) +
+#   geom_line(aes(x=subset_weather_covid$date, y=subset_weather_covid$temp))+
+#   ggtitle("Temperature forecast - SARIMA")
 
 ```
-
-Here we can see that the SARIMA model is complete garbage at predicting that temperatures will drop in November.
+As we can see, SARIMA does help in predicting an increase in temperature coming close to Spring. Let's try forecasting a longer period to confirm that it captures the seasonality
 
 ### Forecasting predictors using TSLM (regression)
 
 I will finally use a TSLM model to forecast the weather data, starting with predicting the temperature based on the rest of the weather data values.
 
 ```{r TSLM_temperature_with_covid}
-#TEMPERATURE 
+#TEMPERATURE
 
 #Fitting the TSLM model
 temp_tslm <- weather_test_set %>%
-  model(tslm = TSLM(temp ~ precip + windspeed + humidity))
+  model(tslm = TSLM(temp ~ humidity))
 report(temp_tslm)
 
 #Plotting the TSLM model
@@ -116,234 +126,172 @@ augment(temp_tslm) %>%
   guides(colour = guide_legend(title=NULL)) +
   labs(title = "TSLM to predict temperature")
 
-#comparing the TSLM model with actual data to see how good/bad it is 
+#comparing the TSLM model with actual data to see how good/bad it is
 augment(temp_tslm) %>%
   ggplot(aes(x = temp, y = .fitted)) + geom_point() +
   ylab("Fitted (predicted values)") + xlab("Data (actual values)") +
   geom_abline(intercept = 0, slope = 1) +
   labs(title = "Fitted values vs Actual data Temperature- Looks not amazing")
 
-#Getting the metrics 
+#Getting the metrics
 glance(temp_tslm) %>% dplyr::select(adj_r_squared, CV, AIC, AICc, BIC)
 
-#Getting the Forecast for November 2022: 
-forecast_tslm_temp <- temp_tslm %>% forecast(new_data = weather_test_set, h = 30) 
-forecast_tslm_temp %>% autoplot(subset_weather) + labs(title = "TSLM forecast for Temperature")
+#Getting the Forecast for March 2023:
+forecast_tslm_temp <- temp_tslm %>% forecast(new_data = weather_test_set)
+autoplot(forecast_tslm_temp) +
+  geom_line(aes(x=weather_test_set$date, y=weather_test_set$temp)) +
+  geom_line(aes(x=subset_weather$date, y=subset_weather$temp))+
+  ggtitle("Temperature forecast - TSLM with Humidity predictor")
 
-#Extracting the forecast values: 
+
+#Extracting the forecast values:
 forecast_table_tslm_temp <- as.data.frame(forecast_tslm_temp)
 forecast_table_tslm_temp <- forecast_table_tslm_temp %>% select(date,.mean)
 
 #change col names
-colnames(forecast_table_tslm_temp)[1] <- "Date"
-colnames(forecast_table_tslm_temp)[2] <- "Temp TSLM"
+colnames(forecast_table_tslm_temp)[1] <- "date"
+colnames(forecast_table_tslm_temp)[2] <- "Temp_TSLM"
+
+head(forecast_table_tslm_temp)
 ```
 Since this looks much better than what I was getting using SARIMA and ETS, I will use TSLM to forecast all of my predictor variables. At the moment, I don't have a metric to compare TSLM with ETS and SARIMA, I simply use my intuition based on the graph produced above. It clearly captured the usual drop in temperatures in November, whereas ETS and SARIMA produced a flat forecast.
 
 ```{r TSLM_temperature_before_covid}
-#TEMPERATURE 
-
-#Fitting the TSLM model
-temp_tslm_covid <- weather_test_covid %>%
-  model(tslm = TSLM(temp ~ precip + windspeed + humidity))
-report(temp_tslm_covid)
-
-#Plotting the TSLM model
-augment(temp_tslm_covid) %>%
-  ggplot(aes(x = date)) +
-  geom_line(aes(y = temp, colour = "Data")) +
-  geom_line(aes(y = .fitted, colour = "Fitted")) + xlab("Year") + ylab(NULL) +
-  guides(colour = guide_legend(title=NULL)) +
-  labs(title = "TSLM to predict temperature")
-
-#comparing the TSLM model with actual data to see how good/bad it is 
-augment(temp_tslm_covid) %>%
-  ggplot(aes(x = temp, y = .fitted)) + geom_point() +
-  ylab("Fitted (predicted values)") + xlab("Data (actual values)") +
-  geom_abline(intercept = 0, slope = 1) +
-  labs(title = "Fitted values vs Actual data Temperature- Looks not amazing")
-
-#Getting the metrics 
-glance(temp_tslm_covid) %>% dplyr::select(adj_r_squared, CV, AIC, AICc, BIC)
-
-#Getting the Forecast for November 2022: 
-forecast_tslm_temp_covid <- temp_tslm_covid %>% forecast(new_data = weather_test_covid, h = 30) 
-forecast_tslm_temp_covid %>% autoplot(subset_weather_covid) + labs(title = "TSLM forecast for Temperature before COVID")
-
-#Extracting the forecast values: 
-forecast_table_tslm_temp_covid <- as.data.frame(forecast_tslm_temp_covid)
-forecast_table_tslm_temp_covid <- forecast_table_tslm_temp_covid %>% select(date,.mean)
-
-#change col names
-colnames(forecast_table_tslm_temp_covid)[1] <- "Date"
-colnames(forecast_table_tslm_temp_covid)[2] <- "Temp TSLM"
-```
-
-```{r}
 # 
-# #PRECIPITATION 
+# #TEMPERATURE
 # #Fitting the TSLM model
-# precip_tslm <- ts_data %>%
-#   model(tslm = TSLM(precip ~ temp + windspeed + humidity))
-# report(precip_tslm)
+# temp_tslm_covid <- weather_test_covid %>%
+#   model(tslm = TSLM(temp ~ humidity))
+# report(temp_tslm_covid)
 # 
 # #Plotting the TSLM model
-# augment(precip_tslm) %>%
-#   ggplot(aes(x = Date)) +
-#   geom_line(aes(y = precip, colour = "Data")) +
+# augment(temp_tslm_covid) %>%
+#   ggplot(aes(x = date)) +
+#   geom_line(aes(y = temp, colour = "Data")) +
 #   geom_line(aes(y = .fitted, colour = "Fitted")) + xlab("Year") + ylab(NULL) +
 #   guides(colour = guide_legend(title=NULL)) +
-#   labs(title = "TSLM to predict precipitation")
+#   labs(title = "TSLM to predict temperature")
 # 
-# 
-# #comparing the TSLM model with actual data to see how good/bad it is 
-# augment(precip_tslm) %>%
-#   ggplot(aes(x = precip, y = .fitted)) + geom_point() +
+# #comparing the TSLM model with actual data to see how good/bad it is
+# augment(temp_tslm_covid) %>%
+#   ggplot(aes(x = temp, y = .fitted)) + geom_point() +
 #   ylab("Fitted (predicted values)") + xlab("Data (actual values)") +
 #   geom_abline(intercept = 0, slope = 1) +
-#   labs(title = "Fitted values vs Actual data Precipitation")
+#   labs(title = "Fitted values vs Actual data Temperature- Looks not amazing")
 # 
-# #Getting the metrics 
-# glance(precip_tslm) %>% dplyr::select(adj_r_squared, CV, AIC, AICc, BIC)
+# #Getting the metrics
+# glance(temp_tslm_covid) %>% dplyr::select(adj_r_squared, CV, AIC, AICc, BIC)
 # 
-# #Getting the Forecast for November 2022: 
-# forecast_tslm_precip <- precip_tslm %>% forecast(new_data = ts_data_weather_te, h = 15) 
-# forecast_tslm_precip %>% autoplot(ts_data_weather_last6) + labs(title = "TSLM forecast for Precipitation")
+# #Getting the Forecast for November 2022:
+# forecast_tslm_temp_covid <- temp_tslm_covid %>% forecast(new_data = weather_test_covid)
+# #forecast_tslm_temp_covid %>% autoplot(subset_weather_covid) + labs(title = "TSLM forecast for Temperature before COVID")
+# autoplot(forecast_tslm_temp_covid) +
+#   geom_line(aes(x=weather_test_covid$date, y=weather_test_covid$temp)) +
+#   geom_line(aes(x=subset_weather_covid$date, y=subset_weather_covid$temp))+
+#   ggtitle("Temperature forecast - TSLM with Humidity predictor")
 # 
-# #Extracting the forecast values: 
-# forecast_table_tslm_precip <- as.data.frame(forecast_tslm_precip)
-# forecast_table_tslm_precip <- forecast_table_tslm_precip %>% select(Date,.mean)
+# #Extracting the forecast values:
+# forecast_table_tslm_temp_covid <- as.data.frame(forecast_tslm_temp_covid)
+# forecast_table_tslm_temp_covid <- forecast_table_tslm_temp_covid %>% select(date,.mean)
 # 
 # #change col names
-# colnames(forecast_table_tslm_precip)[1] <- "Date"
-# colnames(forecast_table_tslm_precip)[2] <- "Precip TSLM"
+# colnames(forecast_table_tslm_temp_covid)[1] <- "Date"
+# colnames(forecast_table_tslm_temp_covid)[2] <- "Temp_TSLM"
 
 ```
 
 ```{r tslm_windspeed_with_covid}
-
-
-#WINDSPEED 
-#Fitting the TSLM model
-windspeed_tslm <- weather_train_set %>%
-  model(tslm = TSLM(windspeed ~ temp + precip + humidity))
-report(windspeed_tslm)
-
-#Plotting the TSLM model
-augment(windspeed_tslm) %>%
-  ggplot(aes(x = date)) +
-  geom_line(aes(y = windspeed, colour = "Data")) +
-  geom_line(aes(y = .fitted, colour = "Fitted")) + xlab("Year") + ylab(NULL) +
-  guides(colour = guide_legend(title=NULL)) +
-  labs(title = "TSLM to predict windspeed")
-
-
-#comparing the TSLM model with actual data to see how good/bad it is 
-augment(windspeed_tslm) %>%
-  ggplot(aes(x = windspeed, y = .fitted)) + geom_point() +
-  ylab("Fitted (predicted values)") + xlab("Data (actual values)") +
-  geom_abline(intercept = 0, slope = 1) +
-  labs(title = "Fitted values vs Actual data Windspeed")
-
-#Getting the metrics 
-glance(windspeed_tslm) %>% dplyr::select(adj_r_squared, CV, AIC, AICc, BIC)
-
-#Getting the Forecast for November 2022: 
-forecast_tslm_windspeed <- windspeed_tslm %>% forecast(new_data = weather_test_set, h = 30) 
-forecast_tslm_windspeed %>% autoplot(subset_weather) + labs(title = "TSLM forecast for Windspeed")
-
-#Extracting the forecast values: 
-forecast_table_tslm_windspeed <- as.data.frame(forecast_tslm_windspeed)
-forecast_table_tslm_windspeed <- forecast_table_tslm_windspeed %>% select(date,.mean)
-
-#change col names
-colnames(forecast_table_tslm_windspeed)[1] <- "Date"
-colnames(forecast_table_tslm_windspeed)[2] <- "Windspeed TSLM"
-
-```
-```{r tslm_windspeed_before_covid}
-
-
-#WINDSPEED 
-#Fitting the TSLM model
-windspeed_tslm_covid <- weather_train_covid %>%
-  model(tslm = TSLM(windspeed ~ temp + precip + humidity))
-report(windspeed_tslm_covid)
-
-#Plotting the TSLM model
-augment(windspeed_tslm_covid) %>%
-  ggplot(aes(x = date)) +
-  geom_line(aes(y = windspeed, colour = "Data")) +
-  geom_line(aes(y = .fitted, colour = "Fitted")) + xlab("Year") + ylab(NULL) +
-  guides(colour = guide_legend(title=NULL)) +
-  labs(title = "TSLM to predict windspeed")
-
-
-#comparing the TSLM model with actual data to see how good/bad it is 
-augment(windspeed_tslm_covid) %>%
-  ggplot(aes(x = windspeed, y = .fitted)) + geom_point() +
-  ylab("Fitted (predicted values)") + xlab("Data (actual values)") +
-  geom_abline(intercept = 0, slope = 1) +
-  labs(title = "Fitted values vs Actual data Windspeed")
-
-#Getting the metrics 
-glance(windspeed_tslm_covid) %>% dplyr::select(adj_r_squared, CV, AIC, AICc, BIC)
-
-#Getting the Forecast for November 2022: 
-forecast_tslm_windspeed_covid <- windspeed_tslm_covid %>% forecast(new_data = weather_test_covid, h = 30) 
-forecast_tslm_windspeed_covid %>% autoplot(subset_weather_covid) + labs(title = "TSLM forecast for Windspeed before COVID")
-
-#Extracting the forecast values: 
-forecast_table_tslm_windspeed_covid <- as.data.frame(forecast_tslm_windspeed_covid)
-forecast_table_tslm_windspeed_covid <- forecast_table_tslm_windspeed_covid %>% select(date,.mean)
-
-#change col names
-colnames(forecast_table_tslm_windspeed_covid)[1] <- "Date"
-colnames(forecast_table_tslm_windspeed_covid)[2] <- "Windspeed TSLM"
-
-```
-
-```{r}
 # 
-# 
-# #HUMIDITY 
+# #WINDSPEED 
 # #Fitting the TSLM model
-# humidity_tslm <- ts_data %>%
-#   model(tslm = TSLM(humidity ~ temp + precip + windspeed))
-# report(humidity_tslm)
+# windspeed_tslm <- weather_train_set %>%
+#   model(tslm = TSLM(windspeed ~ temp))
+# report(windspeed_tslm)
 # 
 # #Plotting the TSLM model
-# augment(humidity_tslm) %>%
-#   ggplot(aes(x = Date)) +
-#   geom_line(aes(y = humidity, colour = "Data")) +
+# augment(windspeed_tslm) %>%
+#   ggplot(aes(x = date)) +
+#   geom_line(aes(y = windspeed, colour = "Data")) +
 #   geom_line(aes(y = .fitted, colour = "Fitted")) + xlab("Year") + ylab(NULL) +
 #   guides(colour = guide_legend(title=NULL)) +
-#   labs(title = "TSLM to predict humidity")
+#   labs(title = "TSLM to predict windspeed")
 # 
 # 
 # #comparing the TSLM model with actual data to see how good/bad it is 
-# augment(humidity_tslm) %>%
-#   ggplot(aes(x = humidity, y = .fitted)) + geom_point() +
+# augment(windspeed_tslm) %>%
+#   ggplot(aes(x = windspeed, y = .fitted)) + geom_point() +
 #   ylab("Fitted (predicted values)") + xlab("Data (actual values)") +
 #   geom_abline(intercept = 0, slope = 1) +
-#   labs(title = "Fitted values vs Actual data Humidity")
+#   labs(title = "Fitted values vs Actual data Windspeed")
 # 
 # #Getting the metrics 
-# glance(humidity_tslm) %>% dplyr::select(adj_r_squared, CV, AIC, AICc, BIC)
+# glance(windspeed_tslm) %>% dplyr::select(adj_r_squared, CV, AIC, AICc, BIC)
 # 
 # #Getting the Forecast for November 2022: 
-# forecast_tslm_humidity <- humidity_tslm %>% forecast(new_data = ts_data_weather_te, h = 15) 
-# forecast_tslm_humidity %>% autoplot(ts_data_weather_last6) + labs(title = "TSLM forecast for Humidity")
+# forecast_tslm_windspeed <- windspeed_tslm %>% forecast(new_data = weather_test_set, h = 30) 
+# forecast_tslm_windspeed %>% autoplot(subset_weather) + labs(title = "TSLM forecast for Windspeed")
 # 
 # #Extracting the forecast values: 
-# forecast_table_tslm_humidity <- as.data.frame(forecast_tslm_humidity)
-# forecast_table_tslm_humidity <- forecast_table_tslm_humidity %>% select(Date,.mean)
+# forecast_table_tslm_windspeed <- as.data.frame(forecast_tslm_windspeed)
+# forecast_table_tslm_windspeed <- forecast_table_tslm_windspeed %>% select(date,.mean)
 # 
 # #change col names
-# colnames(forecast_table_tslm_humidity)[1] <- "Date"
-# colnames(forecast_table_tslm_humidity)[2] <- "Humidity TSLM"
+# colnames(forecast_table_tslm_windspeed)[1] <- "Date"
+# colnames(forecast_table_tslm_windspeed)[2] <- "Windspeed TSLM"
 
 ```
+```{r tslm_windspeed_before_covid}
+# 
+# #WINDSPEED 
+# #Fitting the TSLM model
+# windspeed_tslm_covid <- weather_train_covid %>%
+#   model(tslm = TSLM(windspeed ~ temp))
+# report(windspeed_tslm_covid) 
+# 
+# #Plotting the TSLM model
+# augment(windspeed_tslm_covid) %>%
+#   ggplot(aes(x = date)) +
+#   geom_line(aes(y = windspeed, colour = "Data")) +
+#   geom_line(aes(y = .fitted, colour = "Fitted")) + xlab("Year") + ylab(NULL) +
+#   guides(colour = guide_legend(title=NULL)) +
+#   labs(title = "TSLM to predict windspeed")
+# 
+# 
+# #comparing the TSLM model with actual data to see how good/bad it is 
+# augment(windspeed_tslm_covid) %>%
+#   ggplot(aes(x = windspeed, y = .fitted)) + geom_point() +
+#   ylab("Fitted (predicted values)") + xlab("Data (actual values)") +
+#   geom_abline(intercept = 0, slope = 1) +
+#   labs(title = "Fitted values vs Actual data Windspeed")
+# 
+# #Getting the metrics 
+# glance(windspeed_tslm_covid) %>% dplyr::select(adj_r_squared, CV, AIC, AICc, BIC)
+# 
+# #Getting the Forecast for November 2022: 
+# forecast_tslm_windspeed_covid <- windspeed_tslm_covid %>% forecast(new_data = weather_test_covid, h = 30) 
+# forecast_tslm_windspeed_covid %>% autoplot(subset_weather_covid) + labs(title = "TSLM forecast for Windspeed before COVID")
+# 
+# #Extracting the forecast values: 
+# forecast_table_tslm_windspeed_covid <- as.data.frame(forecast_tslm_windspeed_covid)
+# forecast_table_tslm_windspeed_covid <- forecast_table_tslm_windspeed_covid %>% select(date,.mean)
+# 
+# #change col names
+# colnames(forecast_table_tslm_windspeed_covid)[1] <- "Date"
+# colnames(forecast_table_tslm_windspeed_covid)[2] <- "Windspeed TSLM"
+
+```
+
+```{r sarima_windspeed_with_covid}
+# arima_wind = weather_train_set %>% model(ARIMA(windspeed ~ temp))
+# report(arima_wind)
+# 
+# forecast_arima_wind = forecast(arima_wind, new_data = weather_test_set)
+# #Graphing the forecast
+# forecast_arima_wind %>% autoplot(subset_weather)+
+#   labs(title = "SARIMA Forecast for Windspeed")
+```
+
+
 
 At this point we have forecasts for all of our weather covariates: temperature, precipitation, windspeed and humidity. 
 
