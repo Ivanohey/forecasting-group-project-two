@@ -1,0 +1,64 @@
+---
+title: "Graphs for presentation"
+author: "Konstantinos"
+date: "2023-05-28"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Plots of flights over time
+
+```{r}
+
+ggplot(Swiss_Traffic) +
+  geom_line(aes(x=date,y=departures)) +
+  labs(title = "Number of Departures over Time",
+       x = "Date",
+       y = "Number of Departures")
+
+
+```
+
+# Plots of oil 
+
+```{r}
+oil <- read.csv("data/BrentOilPrices.csv")
+
+#Check for NA's, there's none
+#sum(is.na(oil))
+
+#Convert the "Date" column to a date format:
+oil$Date <- parse_date_time(oil$Date, orders = c("%d-%b-%y", "%b %d, %Y"))
+
+#Convert data to date type
+oil <- oil %>% mutate(Date = as.Date(Date))
+
+#check it's of the right type 
+str(oil)
+
+#Summary statistics 
+oil %>% dfSummary(style = "grid")
+
+#Plot the time series 
+ggplot(oil, aes(x = Date, y = Price)) +
+  geom_line() +
+  labs(title = "Brent Oil Prices (all data)", x = "Date", y = "Price")
+
+#convert to tsibble object -> NOT YET
+#oil <- oil %>%
+  #mutate(Date = yearmonth(Date)) %>% #need to do this before converting to get proper format
+  #as_tsibble(index = Date)
+
+#Select appropriate dates
+oil <- oil %>%
+  mutate(Date = as.Date(Date)) %>%
+  filter(Date > as.Date("2019-01-01"))
+
+ggplot(oil, aes(x = Date, y = Price)) +
+  geom_line() +
+  labs(title = "Brent Oil Prices 2019 onwards", x = "Date", y = "Price")
+```
+

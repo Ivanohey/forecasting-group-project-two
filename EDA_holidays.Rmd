@@ -45,7 +45,7 @@ flights_holidays_plot = ggplot(data = Flights_Holidays) +
   geom_line(aes(x = date, y = departures)) +
   geom_line(aes(x = date, y = ifelse(is_holiday, max(departures) /2, NA), color = "is_holiday"), size = 3) + 
   scale_y_continuous(name = "Departures") +
-  ggtitle("Flights until 2023")
+  ggtitle("Number of flights over time + Holidays")
 flights_holidays_plot
 
 ```
