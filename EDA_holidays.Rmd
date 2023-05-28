@@ -9,16 +9,14 @@ Swiss_Traffic_tsibble = as_tsibble(Swiss_Traffic, index = date)
 Weather = weather %>% as_tsibble(index=date)
 
 #Seasonal decomposition of the flights
-dcmp_gva = Swiss_Traffic_tsibble %>% model(stl = STL(departures))
-components(dcmp_gva) %>% autoplot()
+Swiss_Traffic_tsibble %>% model(stl = STL(departures)) %>% components() %>% autoplot()
 
 ```
 As seen on the ETS decomposition above, there is a strong seasonal component and a noticeable break in the 
 
 ```{r holidays decomposition}
 autoplot(Holidays_ts, is_holiday) 
-dcmp_holidays = Holidays_ts %>% model(stl = STL(is_holiday))
-components(dcmp_holidays) %>% autoplot()
+Holidays_ts %>% model(stl = STL(is_holiday)) %>% components() %>% autoplot()
 
 ```
 
@@ -33,20 +31,20 @@ Flights_Holidays = Swiss_F_H_W
 Flights_Holidays_Covid = Flights_Holidays[Flights_Holidays$date <= as.Date("2020-01-31"),]
 
 #Plot the flights until COVID and holidays
-flights_holidays_plot_covid = ggplot(data = Flights_Holidays_Covid) +
+ggplot(data = Flights_Holidays_Covid) +
   geom_line(aes(x = date, y = departures)) +
   geom_line(aes(x = date, y = ifelse(is_holiday, max(departures) -150, NA), color = "is_holiday"), size = 3) + 
   scale_y_continuous(name = "Departures") +
   ggtitle("Flights until Covid")
-flights_holidays_plot_covid
+
 
 #Plot the flights until today
-flights_holidays_plot = ggplot(data = Flights_Holidays) +
+ggplot(data = Flights_Holidays) +
   geom_line(aes(x = date, y = departures)) +
   geom_line(aes(x = date, y = ifelse(is_holiday, max(departures) /2, NA), color = "is_holiday"), size = 3) + 
   scale_y_continuous(name = "Departures") +
   ggtitle("Flights until 2023")
-flights_holidays_plot
+
 
 ```
 
@@ -60,63 +58,62 @@ flights_holidays_log$departures = log10(flights_holidays_log$departures)
 
 #Plotting with transformed data
 #Plot the flights until COVID and holidays
-flights_holidays_plot_covid = ggplot(data = flights_until_covid_log) +
-  geom_line(aes(x = date, y = departures)) +
-  geom_line(aes(x = date, y = ifelse(is_holiday, max(departures) - 0.1, NA), color = "is_holiday"), size = 4) + 
-  scale_y_continuous(name = "Departures") +
-  ggtitle("Flights until Covid (log transformed)")
-flights_holidays_plot_covid
+ggplot(data = flights_until_covid_log) +
+geom_line(aes(x = date, y = departures)) +
+geom_line(aes(x = date, y = ifelse(is_holiday, max(departures) - 0.1, NA), color = "is_holiday"), size = 4) + 
+scale_y_continuous(name = "Departures") +
+ggtitle("Flights until Covid (log transformed)")
+
 
 #Plot the flights until today
-flights_holidays_plot = ggplot(data = flights_holidays_log) +
-  geom_line(aes(x = date, y = departures)) +
-  geom_line(aes(x = date, y = ifelse(is_holiday, max(departures) -0.2, NA), color = "is_holiday"), size = 7) +
-  
-  scale_y_continuous(name = "Departures") +
-  ggtitle("Flights until Covid (log transformed)")
-flights_holidays_plot
+ggplot(data = flights_holidays_log) +
+geom_line(aes(x = date, y = departures)) +
+geom_line(aes(x = date, y = ifelse(is_holiday, max(departures) -0.2, NA), color = "is_holiday"), size = 7) +
+scale_y_continuous(name = "Departures") +
+ggtitle("Flights until Covid (log transformed)")
+
 
 ```
 As we can see on the plots above, the periods of holidays seem coincide with spikes in the amounts of flights going from Switzerland. This makes sense since it is known that people take planes to go on remote locations for holidays. We can also observe that when there are no holidays for a longer period of time, the number of flights tend to drop, as it can be seen clearly in the end of 2022 or 2023. Now let's look at the correlation between holidays and the number of flights. As we are working with time series, we first need to make our data stationary before studying correlation. In order to achieve that, we first performed a log transformation of our data to reduce the range of our values and make it easier to work with later. Then we decided to use the variation of the number of flights in percentage instead of using the raw number of flights. In fact, it should help us to see if holidays are correlated with increases or decreases in flights.
 ```{r biseral_plot}
 
 #Biserial plot with data only until covid
-biserial_plot = ggplot(data=Flights_Holidays_Covid) + geom_point(aes(y=departures, x=as.factor(is_holiday)), size=0.5, position=position_jitter(width=0.05)) +
+ggplot(data=Flights_Holidays_Covid) + geom_point(aes(y=departures, x=as.factor(is_holiday)), size=0.5, 
+                                                 position=position_jitter(width=0.05)) +
   scale_x_discrete(name = "is a holiday") +
   ggtitle("Biserial plot with data until Covid 19")
-biserial_plot
 
 #Undersampling the data to have same quantity of holidays and normal days:
 min_count = min(table(Flights_Holidays_Covid$is_holiday))
 balanced_data = Flights_Holidays_Covid %>% group_by(is_holiday) %>% sample_n(min_count)
-biserial_plot_balanced = ggplot(data=balanced_data) + geom_point(aes(y=departures, x=as.factor(is_holiday)), size=0.5, position=position_jitter(width=0.05)) +
+ggplot(data=balanced_data) + geom_point(aes(y=departures, x=as.factor(is_holiday)), size=0.5, position=position_jitter(width=0.05)) +
   scale_x_discrete(name = "is a holiday") +
   ggtitle("Biserial plot with data until Covid 19 - Undersampled data")
-biserial_plot_balanced
+
 
 #Boxplots 
-boxplot = ggplot(data= Flights_Holidays_Covid)+ 
+ggplot(data= Flights_Holidays_Covid)+ 
   aes(x=factor(is_holiday), y=departures) +
   labs(x="Is Holiday", y="Departures") +
   geom_boxplot() + 
   ggtitle("Boxplots of departures until COVID")
-boxplot
+
 
 #Boxplots with undersampled data:
-boxplot_balanced = ggplot(data=balanced_data)+
+ggplot(data=balanced_data)+
   aes(x=factor(is_holiday), y=departures)+
   labs(x="Is Holiday", y="Departures") +
   geom_boxplot() + 
   ggtitle("Boxplots of departures until COVID with Undersampled data")
-boxplot_balanced
+
 ```
 
 
 ```{r correlations_with_covid}
 set.seed(123)
 
-corr = cor.test(Flights_Holidays$departures, Flights_Holidays$is_holiday)
-print(corr)
+cor.test(Flights_Holidays$departures, Flights_Holidays$is_holiday)
+
 ```
 Null hypothesis: There is no correlation. <br>
 Alternative hypothesis: There is a correlation. <br>
@@ -128,9 +125,9 @@ However, we need to confirm our assumption by looking at older data. In fact, si
 ```{r correlation_before_covid}
 set.seed(123)
 
-corr_before_covid = cor.test(Flights_Holidays_Covid$departures, Flights_Holidays_Covid$is_holiday)
-print(corr_before_covid)
+cor.test(Flights_Holidays_Covid$departures, Flights_Holidays_Covid$is_holiday)
 
+rm(flights_holidays_log, flights_until_covid_log, Flights_Holidays_Covid, Holidays, Holidays_ts, weather, Weather)
 ```
 
 As seen in the results above, we have a much stronger correlation score and a much smaller p-value for the data recorded until Covid. It shows that in normal times, there is a significant correlation between holidays and departures. The ability to predict holidays efficiently allows us to use this information as covariate for predicting the number of departures.
