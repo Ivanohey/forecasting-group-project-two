@@ -6,12 +6,12 @@ After having forecasted and selected our covariates, it's time to forecast the n
 First, let's create a table that contains all the forecasts from our covariates: 
 
 ```{r}
+#Importing actual data
 Full_Data = Flights_Holidays
-Full_Data_Until_Covid = Full_Data[Full_Data$date <= as.Date("2020-01-31"),]
 
+#Creating datasets with predicted covariates
 Full_Data_With_Forecasts_tslm = merge(Full_Data, forecast_table_tslm_temp, by = "date", all.x = TRUE)
 Full_Data_With_Forecasts_sarimax = merge(Full_Data, forecast_table_sarimax_temp, by = "date", all.x = TRUE)
-
 Full_Data_With_Forecasts_tslm$temp = ifelse(is.na(Full_Data_With_Forecasts_tslm$Temp_TSLM),
                                             Full_Data_With_Forecasts_tslm$temp, 
                                             Full_Data_With_Forecasts_tslm$Temp_TSLM)
@@ -20,47 +20,161 @@ Full_Data_With_Forecasts_sarimax$temp = ifelse(is.na(Full_Data_With_Forecasts_sa
                                             Full_Data_With_Forecasts_sarimax$temp, 
                                             Full_Data_With_Forecasts_sarimax$temp_SARIMAX)
 
+#Filling dataset from TSLM predictions
+rows_to_fill = Full_Data_With_Forecasts_tslm$date >= as.Date("2023-03-01")
+Full_Data_With_Forecasts_tslm$departures[rows_to_fill] = NA
+
+#We want to predict the month of march
+forecast_train_set_tslm = Full_Data_With_Forecasts_tslm %>% filter(date < as.Date("2023-03-01")) %>% as_tsibble(index = date)
+forecast_test_set_tslm = Full_Data_With_Forecasts_tslm %>% filter(date >= as.Date("2023-03-01")) %>% as_tsibble(index = date)
+
+# #Filling dataset with Sarimax predictions
+# rows_to_fill = Full_Data_With_Forecasts_sarimax$date >= as.Date("2023-03-01")
+# Full_Data_With_Forecasts_sarimax$departures[rows_to_fill] = NA
+# #We want to predict the month of march
+# forecast_train_set_arima = Full_Data_With_Forecasts_sarimax %>% filter(date < as.Date("2023-03-01")) %>% as_tsibble(index = date)
+# forecast_test_set_arima = Full_Data_With_Forecasts_sarimax %>% filter(date >= as.Date("2023-03-01")) %>% as_tsibble(index = date)
+
+#Reference data with actual values
+holidays_total = Full_Data %>% mutate(is_holiday = as.factor(is_holiday)) %>% as_tsibble(index = date)
+holidays_train_set = holidays_total %>% filter(date < as.Date("2023-03-01"))
+holidays_test_set = holidays_total %>% filter(date >= as.Date("2023-03-01"))
+
+```
+
+```{r before_covid}
+Full_Data_Until_Covid = Full_Data[Full_Data$date <= as.Date("2020-04-30"),]
+#Creating datasets with predicted covariates
+Data_to_Covid_With_Forecasts_tslm = merge(Full_Data_Until_Covid, forecast_table_tslm_temp_covid, by = "date", all.x = TRUE)
+Data_to_Covid_With_Forecasts_sarimax = merge(Full_Data_Until_Covid, forecast_table_sarimax_temp_covid, by = "date", all.x = TRUE)
+Data_to_Covid_With_Forecasts_tslm$temp = ifelse(is.na(Data_to_Covid_With_Forecasts_tslm$temp_TSLM),
+                                            Data_to_Covid_With_Forecasts_tslm$temp, 
+                                            Data_to_Covid_With_Forecasts_tslm$temp_TSLM)
+
+Data_to_Covid_With_Forecasts_sarimax$temp = ifelse(is.na(Data_to_Covid_With_Forecasts_sarimax$temp_SARIMAX),
+                                            Data_to_Covid_With_Forecasts_sarimax$temp, 
+                                            Data_to_Covid_With_Forecasts_sarimax$temp_SARIMAX)
+
+#Data before covid
+forecast_train_set_tslm_covid = Data_to_Covid_With_Forecasts_tslm %>% filter(date < as.Date("2020-03-15")) %>% as_tsibble(index = date)
+forecast_test_set_tslm_covid = Data_to_Covid_With_Forecasts_tslm %>% filter(date >= as.Date("2020-03-15")) %>% as_tsibble(index = date)
+
+
+holidays_total_covid = Full_Data %>% mutate(is_holiday = as.factor(is_holiday)) %>% as_tsibble(index = date)
+holidays_train_covid = holidays_total_covid %>% filter(date < as.Date("2020-03-15"))
+holidays_test_covid = holidays_total_covid %>% filter(date >= as.Date("2020-03-15"))
+
 ```
 
 
-```{r arima_model_with_covid }
-#With covid and forecasted values using TSLM
-holidays_total = Full_Data %>% mutate(is_holiday = as.factor(is_holiday)) %>% as_tsibble(index = date)
-holidays_train_set = holidays_total %>% filter(date < as.Date("2023-01-01"))
-holidays_test_set = holidays_total %>% filter(date >= as.Date("2023-01-01"))
+```{r Sarimax_with_forecastedV_with_covid}
+#With COVID and forecasted values of holidays and temp
+ARIMA_with_forecasted_H_T = forecast_train_set_tslm %>%
+  model(ARIMA(departures ~ is_holiday + temp))
 
-#Without holidays
-arima_flights = holidays_train_set %>% 
-  model(ARIMA(departures, stepwise= FALSE)) %>% 
-  forecast(h = nrow(holidays_test_set))
+#Accuracy score with forecasted values
+report(ARIMA_with_forecasted_H_T)
 
-#With holidays
-sarimax_flights_H_W_T = holidays_train_set %>% 
-  model(ARIMA(departures ~ is_holiday, stepwise= FALSE)) %>% 
-  forecast(new_data = as_tsibble(holidays_test_set))
+#Forecasting values of temperature for month of march
+ARIMA_forecasted_D_H_T = ARIMA_with_forecasted_H_T %>% forecast(new_data = forecast_test_set_tslm)
 
-
-#With holidays
-sarimax_flights_H_W_T = holidays_train_set %>% 
-  model(ARIMA(departures ~ is_holiday + windspeed, stepwise= FALSE)) %>% 
-  forecast(new_data = as_tsibble(holidays_test_set))
-
-#With holidays
-sarimax_flights_H_W_T = holidays_train_set %>% 
-  model(ARIMA(departures ~ is_holiday + windspeed + temp, stepwise= FALSE)) %>% 
-  forecast(new_data = as_tsibble(holidays_test_set))
-
-#Plotting
-subset_data_with_covid = holidays_train_set[holidays_train_set$date >= as.Date("2020-12-01"),]
-autoplot(arima_flights) +
+#Plotting results with forecasted temperatures and holidays
+subset_data_with_covid = forecast_train_set_tslm[forecast_train_set_tslm$date >= as.Date("2022-12-01"),]
+autoplot(ARIMA_forecasted_D_H_T) +
+  geom_line(aes(x=forecast_test_set_tslm$date, y=forecast_test_set_tslm$departures)) +
+  geom_line(aes(x=subset_data_with_covid$date, y=subset_data_with_covid$departures)) +
   geom_line(aes(x=holidays_test_set$date, y=holidays_test_set$departures)) +
-  geom_line(aes(x=subset_data_with_covid$date, y=subset_data_with_covid$departures))+
+  ggtitle("ARIMA model for whole time frame with forecasted T + H")
+
+```
+```{r Sarimax_with_forecastedV_before_covid}
+#With COVID and forecasted values of holidays and temp
+ARIMA_with_forecasted_H_T_covid = forecast_train_set_tslm_covid %>%
+  model(ARIMA(departures ~ is_holiday + temp))
+
+#Accuracy score with forecasted values
+report(ARIMA_with_forecasted_H_T_covid)
+
+#Forecasting values of temperature for month of march
+ARIMA_forecasted_D_H_T_covid = ARIMA_with_forecasted_H_T_covid %>% forecast(new_data = forecast_test_set_tslm_covid)
+
+#Plotting results with forecasted temperatures and holidays
+subset_data_covid = forecast_train_set_tslm_covid[forecast_train_set_tslm_covid$date >= as.Date("2019-10-01") & forecast_train_set_tslm_covid$date < as.Date("2020-05-01"),]
+autoplot(ARIMA_forecasted_D_H_T_covid) +
+  geom_line(aes(x=forecast_test_set_tslm_covid$date, y=forecast_test_set_tslm_covid$departures)) +
+  geom_line(aes(x=subset_data_covid$date, y=subset_data_covid$departures)) +
+  ggtitle("Departures if COVID didn't happen - ARIMA holidays + temperature")
+
+```
+
+
+```{r TSLM_with_forecastedV_with_covid}
+
+#With covid and forecasted values of temperature and holidays using ARIMA
+
+#With holidays and temperature
+TSLM_with_forecasted_H_T = forecast_train_set_tslm %>%
+  model(TSLM(departures ~ is_holiday + temp))
+
+#Accuracy score
+report(TSLM_with_forecasted_H_T)
+glance(TSLM_with_forecasted_H_T) %>% dplyr::select(adj_r_squared, CV, AIC, AICc, BIC)
+
+#Forecasting values
+forecast_D_H_T = TSLM_with_forecasted_H_T %>% forecast(new_data = forecast_test_set_tslm)
+
+#Plotting results
+subset_data_with_covid = forecast_train_set_tslm[forecast_train_set_tslm$date >= as.Date("2022-12-01"),]
+autoplot(forecast_D_H_T) +
+  geom_line(aes(x=forecast_test_set_tslm$date, y=forecast_test_set_tslm$departures)) +
+  geom_line(aes(x=subset_data_with_covid$date, y=subset_data_with_covid$departures)) +
+  geom_line(aes(x=holidays_test_set$date, y=holidays_test_set$departures)) +
   ggtitle("ARIMA model for whole time frame")
 
-autoplot(sarimax_flights_H_W_T) +
-  geom_line(aes(x=holidays_test_set$date, y=holidays_test_set$departures)) +
-  geom_line(aes(x=subset_data_with_covid$date, y=subset_data_with_covid$departures))+
-  ggtitle("SARIMAX model with for holiday regressor")
+
+```
+TSLM is not useful when forecasting flights only with theses parameters 
+
+
+
+```{r arima_model_with_covid }
+# #With covid and forecasted values using TSLM
+# holidays_total = Full_Data %>% mutate(is_holiday = as.factor(is_holiday)) %>% as_tsibble(index = date)
+# holidays_train_set = holidays_total %>% filter(date < as.Date("2023-01-01"))
+# holidays_test_set = holidays_total %>% filter(date >= as.Date("2023-01-01"))
+# 
+# #Without holidays
+# arima_flights = holidays_train_set %>% 
+#   model(ARIMA(departures, stepwise= FALSE)) %>% 
+#   forecast(h = nrow(holidays_test_set))
+# 
+# #With holidays
+# sarimax_flights_H_W_T = holidays_train_set %>% 
+#   model(ARIMA(departures ~ is_holiday, stepwise= FALSE)) %>% 
+#   forecast(new_data = as_tsibble(holidays_test_set))
+# 
+# 
+# #With holidays
+# sarimax_flights_H_W_T = holidays_train_set %>% 
+#   model(ARIMA(departures ~ is_holiday + windspeed, stepwise= FALSE)) %>% 
+#   forecast(new_data = as_tsibble(holidays_test_set))
+# 
+# #With holidays
+# sarimax_flights_H_W_T = holidays_train_set %>% 
+#   model(ARIMA(departures ~ is_holiday + temp, stepwise= FALSE)) %>% 
+#   forecast(new_data = as_tsibble(holidays_test_set))
+# 
+# #Plotting
+# subset_data_with_covid = holidays_train_set[holidays_train_set$date >= as.Date("2020-12-01"),]
+# autoplot(arima_flights) +
+#   geom_line(aes(x=holidays_test_set$date, y=holidays_test_set$departures)) +
+#   geom_line(aes(x=subset_data_with_covid$date, y=subset_data_with_covid$departures))+
+#   ggtitle("ARIMA model for whole time frame")
+# 
+# autoplot(sarimax_flights_H_W_T) +
+#   geom_line(aes(x=holidays_test_set$date, y=holidays_test_set$departures)) +
+#   geom_line(aes(x=subset_data_with_covid$date, y=subset_data_with_covid$departures))+
+#   ggtitle("SARIMAX model with for holiday regressor")
 
 ```
 From the graphs above we can see that the forecast is not very accurate because it hardly captures the seasonal component of our time series. This is certainly due to the fact that flights dropped severely because of covid, add a lot of noise in the model. Let's see how it performs when we try forecasting values before covid as if it didn't happen.
@@ -68,40 +182,41 @@ From the graphs above we can see that the forecast is not very accurate because 
 
 
 ```{r arima_model_before_covid}
-#Before covid
-str(Flights_Holidays_Covid)
-
-#Creating train and test sets
-holidays_total_covid = Full_Data_Until_Covid %>% mutate(is_holiday = as.factor(is_holiday)) %>% as_tsibble(index = date)
-holidays_train_covid = holidays_total_covid %>% filter( date < as.Date("2020-01-01"))
-holidays_test_covid = holidays_total_covid %>% filter(date >= as.Date("2020-01-01"))
-
-#Without holidays
-arima_flights_covid = holidays_train_covid %>% 
-  model(ARIMA(departures, stepwise= FALSE)) %>% 
-  forecast(h = nrow(holidays_test_covid))
-
-#With holidays
-sarimax_flights_covid_H_W_T = holidays_train_covid %>% 
-  model(ARIMA(departures ~ is_holiday + windspeed + temp, stepwise= FALSE)) %>% 
-  forecast(new_data = as_tsibble(holidays_test_covid)) 
-
-#Plotting
-
-subset_data = holidays_train_covid[holidays_train_covid$date >= as.Date("2018-06-01"),]
-#Without regressors
-autoplot(arima_flights_covid) +
-  geom_line(aes(x=holidays_test_covid$date, y=holidays_test_covid$departures)) +
-  geom_line(aes(x=subset_data$date, y=subset_data$departures))+
-  ggtitle("ARIMA forecast with data until 01.01.2020")
-
-#With regressors
-
-
-autoplot(sarimax_flights_covid_H_W_T) + 
-  geom_line(aes(x = holidays_test_covid$date, y = holidays_test_covid$departures)) +
-  geom_line(aes(x=subset_data$date, y=subset_data$departures))+
-  ggtitle("SARIMAX H-W-T with data until 01.01.2020 ") 
+# #Before covid
+# 
+# # #Creating train and test sets
+# # holidays_total_covid = Full_Data_Until_Covid %>% mutate(is_holiday = as.factor(is_holiday)) %>% as_tsibble(index = date)
+# # holidays_train_covid = holidays_total_covid %>% filter( date < as.Date("2020-01-01"))
+# # holidays_test_covid = holidays_total_covid %>% filter(date >= as.Date("2020-01-01"))
+# 
+# #Without holidays
+# arima_flights = holidays_train_covid %>% 
+#   model(ARIMA(departures, stepwise= FALSE)) %>% 
+#   forecast(h = nrow(holidays_test_covid))
+# 
+# #With holidays
+# sarimax_flights_covid_H =  %>% 
+#   model(ARIMA(departures ~ is_holiday, stepwise= FALSE)) %>% 
+#   forecast(new_data = as_tsibble(holidays_test_covid)) 
+# 
+# #With forecasted temperature
+# sarimax_flights_covid_H_T = 
+# 
+# #Plotting
+# 
+# subset_data = holidays_train_covid[holidays_train_covid$date >= as.Date("2018-06-01"),]
+# 
+# #Without regressors
+# autoplot(arima_flights) +
+#   geom_line(aes(x=holidays_test_covid$date, y=holidays_test_covid$departures)) +
+#   geom_line(aes(x=subset_data$date, y=subset_data$departures))+
+#   ggtitle("ARIMA forecast with data until 01.01.2020")
+# 
+# #With regressors
+# autoplot(sarimax_flights_covid_H_W_T) + 
+#   geom_line(aes(x = holidays_test_covid$date, y = holidays_test_covid$departures)) +
+#   geom_line(aes(x=subset_data$date, y=subset_data$departures))+
+#   ggtitle("SARIMAX H-W-T with data until 01.01.2020 ") 
 
 
 ```
